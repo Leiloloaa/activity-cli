@@ -556,6 +556,7 @@
                 <el-radio-button label="Yoho"></el-radio-button>
                 <el-radio-button label="Hiyoo"></el-radio-button>
                 <el-radio-button label="SoulStar"></el-radio-button>
+                <el-radio-button label="DramaBit"></el-radio-button>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="General activity">
@@ -974,11 +975,28 @@ ${form.hot == "true" ? `${master}_op_hot/index.html?lang=&key=` : "--"}
 
           // 下载模板到当前运行目录
           const downloadTemplate = async () => {
+            if (!form.name) {
+              ElMessage({
+                message: "请输入 Activity Name",
+                type: "warning",
+              });
+              return;
+            }
+
             downloadLoading.value = true;
             try {
               const url = "http://localhost:3000/download-template";
+              // 传递完整的表单数据用于生成 config.ts
               const res = await axios.post(url, {
                 projectName: form.projectName,
+                name: form.name,
+                id: form.id,
+                url: form.url,
+                textUrl: form.textUrl,
+                figma: form.figma,
+                bgc: form.bgc,
+                catalog: form.catalog,
+                info: form.info,
               });
 
               if (res.data.success) {

@@ -1,7 +1,12 @@
 const http = require("http");
+const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const chalk = require("chalk");
+
+// GitHub 仓库配置
+const GITHUB_REPO = "Leiloloaa/activity-cli";
+const GITHUB_BRANCH = "main";
 
 // MIME 类型映射
 const MIME_TYPES = {
@@ -68,6 +73,252 @@ function findIndexFile(rootDir) {
 }
 
 /**
+ * 从 GitHub API 获取目录内容
+ */
+function fetchGitHubDir(dirPath) {
+  return new Promise((resolve, reject) => {
+    const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${dirPath}?ref=${GITHUB_BRANCH}`;
+    console.log(chalk.gray(`获取目录: ${dirPath}`));
+
+    const options = {
+      headers: {
+        "User-Agent": "activity-cli",
+        Accept: "application/vnd.github.v3+json",
+      },
+    };
+
+    https
+      .get(apiUrl, options, (response) => {
+        let data = "";
+        response.on("data", (chunk) => (data += chunk));
+        response.on("end", () => {
+          if (response.statusCode === 200) {
+            resolve(JSON.parse(data));
+          } else {
+            reject(new Error(`GitHub API 错误: ${response.statusCode}`));
+          }
+        });
+      })
+      .on("error", reject);
+  });
+}
+
+/**
+ * 下载单个文件
+ */
+function downloadGitHubFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destPath);
+    https
+      .get(url, (response) => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          https
+            .get(response.headers.location, (redirectResponse) => {
+              redirectResponse.pipe(file);
+              file.on("finish", () => {
+                file.close();
+                resolve();
+              });
+            })
+            .on("error", reject);
+        } else {
+          response.pipe(file);
+          file.on("finish", () => {
+            file.close();
+            resolve();
+          });
+        }
+      })
+      .on("error", reject);
+  });
+}
+
+/**
+ * 递归下载目录
+ */
+async function downloadGitHubDir(remotePath, localPath) {
+  const contents = await fetchGitHubDir(remotePath);
+
+  if (!fs.existsSync(localPath)) {
+    fs.mkdirSync(localPath, { recursive: true });
+  }
+
+  for (const item of contents) {
+    const itemLocalPath = path.join(localPath, item.name);
+
+    if (item.type === "dir") {
+      await downloadGitHubDir(item.path, itemLocalPath);
+    } else if (item.type === "file") {
+      console.log(chalk.gray(`  下载: ${item.name}`));
+      await downloadGitHubFile(item.download_url, itemLocalPath);
+    }
+  }
+}
+
+/**
+ * 首字母大写
+ */
+function capitalizeFirstLetter(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * 生成 config.ts 内容
+ */
+function generateConfigContent(config) {
+  const info = `export const info = \`
+${config.info || ""}
+\``;
+
+  const documentLink = `export const documentLink = \`
+${config.url || ""}
+\``;
+
+  const textLink = `export const textLink = \`
+${config.textUrl || ""}
+\``;
+
+  const figmaLink = `export const figmaLink = \`
+${config.figma || ""}
+\``;
+
+  const ossLink = `export const ossLink = \`
+https://oss.console.aliyun.com/bucket/oss-ap-southeast-1/yoho-activity-www/object/upload?path=activity%2F${
+    config.catalog || ""
+  }_${capitalizeFirstLetter(config.name)}%2F
+\``;
+
+  const yohoTestJenkinsLink = `export const yohoTestJenkinsLink = \`
+https://jenkins-web.waka.media/job/yoho/job/TestEnv/job/web-activity/job/activity-vite/build?delay=0sec
+\``;
+
+  const yohoProdJenkinsLink = `export const yohoProdJenkinsLink = \`
+https://jenkins-web.waka.media/job/yoho/job/ProdEnv/job/web-activity/job/activity-vite/build?delay=0sec
+\``;
+
+  const hiyooTestJenkinsLink = `export const hiyooTestJenkinsLink = \`
+https://jenkins-web.waka.media/job/hiyoo/job/TestEnv/job/web-activity/job/activity-vite/build?delay=0sec
+\``;
+
+  const hiyooProdJenkinsLink = `export const hiyooProdJenkinsLink = \`
+https://jenkins-web.waka.media/job/hiyoo/job/ProdEnv/job/web-activity/job/activity-vite/build?delay=0sec
+\``;
+
+  return `export const config = {
+  activityId: ${config.id || 0},
+  projectName: '/activity/${config.catalog || ""}_${capitalizeFirstLetter(
+    config.name
+  )}',
+  backgroundColor: '${config.bgc || ""}',
+}
+${info}
+${documentLink}
+${textLink}
+${figmaLink}
+${ossLink}
+${yohoTestJenkinsLink}
+${yohoProdJenkinsLink}
+${hiyooTestJenkinsLink}
+${hiyooProdJenkinsLink}
+`;
+}
+
+/**
+ * 处理 /download-template API
+ */
+async function handleDownloadTemplate(req, res) {
+  // 设置 CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  // 解析 POST body
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", async () => {
+    try {
+      const data = body ? JSON.parse(body) : {};
+      const projectName = data.projectName || "Yoho";
+      const activityName = data.name || "activity";
+
+      const templateMap = {
+        Yoho: "yoho",
+        Hiyoo: "hiyoo",
+        SoulStar: "soulstar",
+        DramaBit: "dramebit",
+      };
+
+      const templateDir = templateMap[projectName] || "yoho";
+      const remotePath = `template/${templateDir}/activity`;
+      const catalog = data.catalog || "202501";
+
+      // 目标目录: ./src/page/{catalog}/{name}
+      const srcPageDir = path.resolve(process.cwd(), "src", "page");
+      const catalogDir = path.join(srcPageDir, catalog);
+      const targetDir = path.join(catalogDir, activityName);
+
+      console.log(chalk.cyan(`\n📦 从 GitHub 下载模板: ${remotePath}`));
+      console.log(chalk.gray(`项目名称: ${activityName}`));
+      console.log(chalk.gray(`目录分类: ${catalog}`));
+      console.log(chalk.gray(`目标目录: ${targetDir}`));
+
+      // 确保 src/page 目录存在
+      if (!fs.existsSync(srcPageDir)) {
+        fs.mkdirSync(srcPageDir, { recursive: true });
+        console.log(chalk.gray(`  创建目录: src/page`));
+      }
+
+      // 确保 catalog 目录存在
+      if (!fs.existsSync(catalogDir)) {
+        fs.mkdirSync(catalogDir, { recursive: true });
+        console.log(chalk.gray(`  创建目录: src/page/${catalog}`));
+      }
+
+      // 清理已存在的目标目录
+      if (fs.existsSync(targetDir)) {
+        fs.rmSync(targetDir, { recursive: true, force: true });
+      }
+
+      // 下载模板
+      await downloadGitHubDir(remotePath, targetDir);
+
+      // 生成并写入 config.ts
+      const configPath = path.join(targetDir, "config.ts");
+      const configContent = generateConfigContent(data);
+      fs.writeFileSync(configPath, configContent, "utf8");
+      console.log(chalk.gray(`  重写: config.ts`));
+
+      console.log(chalk.green(`✓ 模板下载完成!\n`));
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          success: true,
+          message: `模板已下载到: ${targetDir}`,
+          targetDir,
+        })
+      );
+    } catch (error) {
+      console.error(chalk.red("下载模板失败:"), error.message);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          success: false,
+          message: `下载失败: ${error.message}`,
+        })
+      );
+    }
+  });
+}
+
+/**
  * 创建并启动 HTTP 服务器
  * @param {string} rootDir - 静态文件根目录
  * @param {number} port - 服务器端口
@@ -75,9 +326,15 @@ function findIndexFile(rootDir) {
  */
 function createServer(rootDir, port) {
   return new Promise((resolve, reject) => {
-    const server = http.createServer((req, res) => {
+    const server = http.createServer(async (req, res) => {
       // 解析请求 URL
       let urlPath = decodeURIComponent(req.url.split("?")[0]);
+
+      // 处理 API 请求
+      if (urlPath === "/download-template") {
+        await handleDownloadTemplate(req, res);
+        return;
+      }
 
       // 处理根路径
       if (urlPath === "/") {
