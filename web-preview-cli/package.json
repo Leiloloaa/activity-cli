@@ -1,0 +1,31 @@
+{
+  "name": "web-preview-cli",
+  "version": "1.0.0",
+  "description": "从 git 仓库下载网页并启动本地服务器预览",
+  "main": "index.js",
+  "bin": {
+    "webp": "./bin/cli.js",
+    "web-preview": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cli",
+    "git",
+    "web",
+    "preview",
+    "server"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "open": "^8.4.2",
+    "simple-git": "^3.20.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
