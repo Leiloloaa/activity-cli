@@ -78,7 +78,6 @@ function findIndexFile(rootDir) {
 function fetchGitHubDir(dirPath) {
   return new Promise((resolve, reject) => {
     const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${dirPath}?ref=${GITHUB_BRANCH}`;
-    console.log(chalk.gray(`获取目录: ${dirPath}`));
 
     const options = {
       headers: {
@@ -149,7 +148,6 @@ async function downloadGitHubDir(remotePath, localPath) {
     if (item.type === "dir") {
       await downloadGitHubDir(item.path, itemLocalPath);
     } else if (item.type === "file") {
-      console.log(chalk.gray(`  下载: ${item.name}`));
       await downloadGitHubFile(item.download_url, itemLocalPath);
     }
   }
@@ -246,7 +244,6 @@ ${isHot ? hotMasterLinks.join("\n") : "--"}
 
   data.info = text.replace(/--\n/g, "");
   data.activityUrl = `${master}/index.html?lang=&key=`;
-  console.log(chalk.gray("提测信息已生成"));
 };
 
 /**
@@ -370,21 +367,14 @@ async function handleDownloadTemplate(req, res) {
       const catalogDir = path.join(srcPageDir, catalog);
       const targetDir = path.join(catalogDir, activityName);
 
-      console.log(chalk.cyan(`\n📦 从 GitHub 下载模板: ${remotePath}`));
-      console.log(chalk.gray(`项目名称: ${activityName}`));
-      console.log(chalk.gray(`目录分类: ${catalog}`));
-      console.log(chalk.gray(`目标目录: ${targetDir}`));
+      console.log(chalk.cyan(`\n📦 下载模板到: src/page/${catalog}/`));
 
-      // 确保 src/page 目录存在
+      // 确保目录存在
       if (!fs.existsSync(srcPageDir)) {
         fs.mkdirSync(srcPageDir, { recursive: true });
-        console.log(chalk.gray(`  创建目录: src/page`));
       }
-
-      // 确保 catalog 目录存在
       if (!fs.existsSync(catalogDir)) {
         fs.mkdirSync(catalogDir, { recursive: true });
-        console.log(chalk.gray(`  创建目录: src/page/${catalog}`));
       }
 
       // 清理已存在的目标目录
@@ -402,7 +392,7 @@ async function handleDownloadTemplate(req, res) {
       const configPath = path.join(targetDir, "config.ts");
       const configContent = generateConfigContent(data);
       fs.writeFileSync(configPath, configContent, "utf8");
-      console.log(chalk.gray(`  重写: ${activityName}/config.ts`));
+      console.log(chalk.green(`  ✓ ${activityName}`));
 
       // 记录所有创建的目录
       const createdDirs = [targetDir];
@@ -414,37 +404,54 @@ async function handleDownloadTemplate(req, res) {
       if (isOp && opNum > 0) {
         const remoteOpPath = `template/${templateDir}/activity_op`;
 
-        for (let i = 1; i <= opNum; i++) {
-          // 目录命名: {name}_op1, {name}_op2, ...
-          const opDirName = `${activityName}_op${opNum === 1 ? "" : i}`;
+        // 第一个 OP 目录：从 GitHub 下载
+        const firstOpDirName = `${activityName}_op${opNum === 1 ? "" : 1}`;
+        const firstOpTargetDir = path.join(catalogDir, firstOpDirName);
+
+        if (fs.existsSync(firstOpTargetDir)) {
+          fs.rmSync(firstOpTargetDir, { recursive: true, force: true });
+        }
+
+        await downloadGitHubDir(remoteOpPath, firstOpTargetDir);
+
+        // 重写第一个目录的 config.ts
+        const firstOpData = { ...data, name: firstOpDirName };
+        const firstOpConfigPath = path.join(firstOpTargetDir, "config.ts");
+        fs.writeFileSync(
+          firstOpConfigPath,
+          generateConfigContent(firstOpData, { includeInfo: false }),
+          "utf8"
+        );
+        createdDirs.push(firstOpTargetDir);
+
+        // 收集所有 OP 目录名
+        const opDirNames = [firstOpDirName];
+
+        // 其他 OP 目录：本地复制
+        for (let i = 2; i <= opNum; i++) {
+          const opDirName = `${activityName}_op${i}`;
           const opTargetDir = path.join(catalogDir, opDirName);
 
-          console.log(
-            chalk.cyan(`\n📦 下载 OP 模板 ${i}/${opNum}: ${opDirName}`)
-          );
-
-          // 清理已存在的目录
           if (fs.existsSync(opTargetDir)) {
             fs.rmSync(opTargetDir, { recursive: true, force: true });
           }
 
-          // 下载 activity_op 模板
-          await downloadGitHubDir(remoteOpPath, opTargetDir);
+          // 本地复制目录
+          fs.cpSync(firstOpTargetDir, opTargetDir, { recursive: true });
 
-          // 生成 OP 目录的 config.ts（不包含提测信息）
-          const opData = {
-            ...data,
-            name: opDirName,
-          };
+          // 重写 config.ts
+          const opData = { ...data, name: opDirName };
           const opConfigPath = path.join(opTargetDir, "config.ts");
-          const opConfigContent = generateConfigContent(opData, {
-            includeInfo: false,
-          });
-          fs.writeFileSync(opConfigPath, opConfigContent, "utf8");
-          console.log(chalk.gray(`  重写: ${opDirName}/config.ts`));
-
+          fs.writeFileSync(
+            opConfigPath,
+            generateConfigContent(opData, { includeInfo: false }),
+            "utf8"
+          );
           createdDirs.push(opTargetDir);
+          opDirNames.push(opDirName);
         }
+
+        console.log(chalk.green(`  ✓ ${opDirNames.join(", ")}`));
       }
 
       // 如果 hot 为 true，下载 activity_op_hot 目录
@@ -454,41 +461,59 @@ async function handleDownloadTemplate(req, res) {
       if (isHot && hotNum > 0) {
         const remoteHotPath = `template/${templateDir}/activity_op_hot`;
 
-        for (let i = 1; i <= hotNum; i++) {
-          // 目录命名: {name}_op_hot1, {name}_op_hot2, ...
-          const hotDirName = `${activityName}_op_hot${hotNum === 1 ? "" : i}`;
-          const hotTargetDir = path.join(catalogDir, hotDirName);
+        // 第一个 HOT 目录：从 GitHub 下载
+        const firstHotDirName = `${activityName}_op_hot${
+          hotNum === 1 ? "" : 1
+        }`;
+        const firstHotTargetDir = path.join(catalogDir, firstHotDirName);
 
-          console.log(
-            chalk.cyan(`\n📦 下载 HOT 模板 ${i}/${hotNum}: ${hotDirName}`)
+        if (fs.existsSync(firstHotTargetDir)) {
+          fs.rmSync(firstHotTargetDir, { recursive: true, force: true });
+        }
+
+        try {
+          await downloadGitHubDir(remoteHotPath, firstHotTargetDir);
+
+          // 重写第一个目录的 config.ts
+          const firstHotData = { ...data, name: firstHotDirName };
+          const firstHotConfigPath = path.join(firstHotTargetDir, "config.ts");
+          fs.writeFileSync(
+            firstHotConfigPath,
+            generateConfigContent(firstHotData, { includeInfo: false }),
+            "utf8"
           );
+          createdDirs.push(firstHotTargetDir);
 
-          // 清理已存在的目录
-          if (fs.existsSync(hotTargetDir)) {
-            fs.rmSync(hotTargetDir, { recursive: true, force: true });
-          }
+          // 收集所有 HOT 目录名
+          const hotDirNames = [firstHotDirName];
 
-          // 下载 activity_op_hot 模板
-          try {
-            await downloadGitHubDir(remoteHotPath, hotTargetDir);
+          // 其他 HOT 目录：本地复制
+          for (let i = 2; i <= hotNum; i++) {
+            const hotDirName = `${activityName}_op_hot${i}`;
+            const hotTargetDir = path.join(catalogDir, hotDirName);
 
-            // 生成 HOT 目录的 config.ts（不包含提测信息）
-            const hotData = {
-              ...data,
-              name: hotDirName,
-            };
+            if (fs.existsSync(hotTargetDir)) {
+              fs.rmSync(hotTargetDir, { recursive: true, force: true });
+            }
+
+            // 本地复制目录
+            fs.cpSync(firstHotTargetDir, hotTargetDir, { recursive: true });
+
+            // 重写 config.ts
+            const hotData = { ...data, name: hotDirName };
             const hotConfigPath = path.join(hotTargetDir, "config.ts");
-            const hotConfigContent = generateConfigContent(hotData, {
-              includeInfo: false,
-            });
-            fs.writeFileSync(hotConfigPath, hotConfigContent, "utf8");
-            console.log(chalk.gray(`  重写: ${hotDirName}/config.ts`));
-
+            fs.writeFileSync(
+              hotConfigPath,
+              generateConfigContent(hotData, { includeInfo: false }),
+              "utf8"
+            );
             createdDirs.push(hotTargetDir);
-          } catch (err) {
-            console.log(chalk.yellow(`  ⚠️ activity_op_hot 模板不存在，跳过`));
-            break; // 如果模板不存在，跳出循环
+            hotDirNames.push(hotDirName);
           }
+
+          console.log(chalk.green(`  ✓ ${hotDirNames.join(", ")}`));
+        } catch (err) {
+          console.log(chalk.yellow(`  ⚠️ activity_op_hot 模板不存在，跳过`));
         }
       }
 
