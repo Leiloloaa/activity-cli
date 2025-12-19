@@ -455,13 +455,99 @@ app.get("/checkServerStatus", (req, res) => {
   res.send("ready");
 });
 
-// 下载模板目录到当前运行目录
+// 从 GitHub 下载模板目录到当前运行目录
 app.post("/download-template", async (req, res) => {
   const fs = require("fs");
+  const https = require("https");
   const { projectName = "Yoho" } = req.body;
 
+  // GitHub 仓库配置
+  const GITHUB_REPO = "Leiloloaa/activity-cli";
+  const GITHUB_BRANCH = "main";
+
+  // 从 GitHub API 获取目录内容
+  const fetchGitHubDir = (dirPath) => {
+    return new Promise((resolve, reject) => {
+      const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${dirPath}?ref=${GITHUB_BRANCH}`;
+      console.log(`获取目录: ${apiUrl}`);
+
+      const options = {
+        headers: {
+          "User-Agent": "activity-cli",
+          Accept: "application/vnd.github.v3+json",
+        },
+      };
+
+      https
+        .get(apiUrl, options, (response) => {
+          let data = "";
+          response.on("data", (chunk) => (data += chunk));
+          response.on("end", () => {
+            if (response.statusCode === 200) {
+              resolve(JSON.parse(data));
+            } else {
+              reject(new Error(`GitHub API 错误: ${response.statusCode}`));
+            }
+          });
+        })
+        .on("error", reject);
+    });
+  };
+
+  // 下载单个文件
+  const downloadFile = (url, destPath) => {
+    return new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(destPath);
+      https
+        .get(url, (response) => {
+          // 处理重定向
+          if (response.statusCode === 302 || response.statusCode === 301) {
+            https
+              .get(response.headers.location, (redirectResponse) => {
+                redirectResponse.pipe(file);
+                file.on("finish", () => {
+                  file.close();
+                  resolve();
+                });
+              })
+              .on("error", reject);
+          } else {
+            response.pipe(file);
+            file.on("finish", () => {
+              file.close();
+              resolve();
+            });
+          }
+        })
+        .on("error", reject);
+    });
+  };
+
+  // 递归下载目录
+  const downloadDir = async (remotePath, localPath) => {
+    const contents = await fetchGitHubDir(remotePath);
+
+    // 创建本地目录
+    if (!fs.existsSync(localPath)) {
+      fs.mkdirSync(localPath, { recursive: true });
+    }
+
+    for (const item of contents) {
+      const itemLocalPath = path.join(localPath, item.name);
+
+      if (item.type === "dir") {
+        // 递归下载子目录
+        await downloadDir(item.path, itemLocalPath);
+      } else if (item.type === "file") {
+        // 下载文件
+        console.log(`下载文件: ${item.name}`);
+        await downloadFile(item.download_url, itemLocalPath);
+      }
+    }
+  };
+
   try {
-    // 模板源目录
+    // 模板目录映射
     const templateMap = {
       Yoho: "yoho",
       Hiyoo: "hiyoo",
@@ -469,58 +555,26 @@ app.post("/download-template", async (req, res) => {
     };
 
     const templateDir = templateMap[projectName] || "yoho";
-    const sourceDir = path.resolve(
-      __dirname,
-      `../template/${templateDir}/activity`
-    );
+    const remotePath = `template/${templateDir}/activity`;
     // 目标目录：当前运行目录下的 activity-template
     const targetDir = path.resolve(process.cwd(), "activity-template");
 
-    console.log(`模板源目录: ${sourceDir}`);
+    console.log(`从 GitHub 下载模板: ${remotePath}`);
     console.log(`目标目录: ${targetDir}`);
-
-    // 检查源目录是否存在
-    if (!fs.existsSync(sourceDir)) {
-      return res.send({
-        success: false,
-        message: `模板目录不存在: ${sourceDir}`,
-      });
-    }
-
-    // 递归复制目录
-    const copyDir = (src, dest) => {
-      // 创建目标目录
-      if (!fs.existsSync(dest)) {
-        fs.mkdirSync(dest, { recursive: true });
-      }
-
-      const entries = fs.readdirSync(src, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-
-        if (entry.isDirectory()) {
-          copyDir(srcPath, destPath);
-        } else {
-          fs.copyFileSync(srcPath, destPath);
-        }
-      }
-    };
 
     // 如果目标目录已存在，先删除
     if (fs.existsSync(targetDir)) {
       fs.rmSync(targetDir, { recursive: true, force: true });
     }
 
-    // 复制模板
-    copyDir(sourceDir, targetDir);
+    // 从 GitHub 下载模板
+    await downloadDir(remotePath, targetDir);
 
     console.log(`模板下载完成: ${targetDir}`);
 
     res.send({
       success: true,
-      message: `模板已下载到: ${targetDir}`,
+      message: `模板已从 GitHub 下载到: ${targetDir}`,
       targetDir,
     });
   } catch (error) {
