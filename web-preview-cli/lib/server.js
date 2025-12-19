@@ -164,12 +164,110 @@ function capitalizeFirstLetter(str) {
 }
 
 /**
- * 生成 config.ts 内容
+ * 随机打乱数组
  */
-function generateConfigContent(config) {
-  const info = `export const info = \`
+function shuffleArray(array) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
+/**
+ * 处理提测信息，修改 data.info 属性
+ */
+const handleInfo = (data) => {
+  const map = {
+    Yoho: {
+      test: "https://activity-h5-test.yoho.media",
+      master: "https://activity-h5.yoho.media",
+    },
+    Hiyoo: {
+      test: "https://activity-h5-test.chatchill.media/activity-vite",
+      master: "https://activity-h5.chatchill.media/activity-vite",
+    },
+    SoulStar: {
+      test: "https://activity-h5-test.dopalive.com",
+      master: "https://activity-h5.dopalive.com",
+    },
+    DramaBit: {
+      test: "https://activity-h5-test.miniepisode.com",
+      master: "https://activity-h5.miniepisode.com",
+    },
+  };
+
+  const projectName = data.projectName || "Yoho";
+  const opNum = parseInt(data.opNum) || 1;
+  const hotNum = parseInt(data.hotNum) || 1;
+  const isOp = data.op === "true" || data.op === true;
+  const isHot = data.hot === "true" || data.hot === true;
+
+  const test = `${map[projectName].test}/act_v_${data.catalog}_${data.name}`;
+  const master = `${map[projectName].master}/act_v_${data.catalog}_${data.name}`;
+
+  // 生成 OP 链接
+  const opTextLinks = [];
+  const opMasterLinks = [];
+  if (isOp) {
+    for (let i = 1; i <= opNum; i++) {
+      const suffix = opNum === 1 ? "" : i;
+      opTextLinks.push(`${test}_op${suffix}/index.html?lang=&key=`);
+      opMasterLinks.push(`${master}_op${suffix}/index.html?lang=&key=`);
+    }
+  }
+
+  // 生成 HOT 链接
+  const hotTextLinks = [];
+  const hotMasterLinks = [];
+  if (isHot) {
+    for (let i = 1; i <= hotNum; i++) {
+      const suffix = hotNum === 1 ? "" : i;
+      hotTextLinks.push(`${test}_op_hot${suffix}/index.html?lang=&key=`);
+      hotMasterLinks.push(`${master}_op_hot${suffix}/index.html?lang=&key=`);
+    }
+  }
+
+  const text = `🌰活动提测: ${data.url || ""}
+Figma: ${data.figma || ""}
+活动🆔: ${data.id || ""}
+活动链接(测试):
+${test}/index.html?lang=&key=
+${isOp ? opTextLinks.join("\n") : "--"}
+${isHot ? hotTextLinks.join("\n") : "--"}
+活动链接(正式):
+${master}/index.html?lang=EG&key=
+${isOp ? opMasterLinks.join("\n") : "--"}
+${isHot ? hotMasterLinks.join("\n") : "--"}
+前端: ${shuffleArray(["@Stone", "@阿田", "@玄策"])}
+后端: ${shuffleArray(["@待续", "@紫红", "@单丛"])}
+测试: ${shuffleArray(["@隆多", "@保罗"])}`;
+
+  data.info = text.replace(/--\n/g, "");
+  data.activityUrl = `${master}/index.html?lang=&key=`;
+  console.log(chalk.gray("提测信息已生成"));
+};
+
+/**
+ * 生成 config.ts 内容
+ * @param {Object} config - 配置对象
+ * @param {Object} options - 可选配置
+ * @param {boolean} options.includeInfo - 是否包含提测信息，默认 true
+ */
+function generateConfigContent(config, options = {}) {
+  const { includeInfo = true } = options;
+  const projectName = config.projectName || "Yoho";
+  const activityPath = `${config.catalog || ""}_${capitalizeFirstLetter(
+    config.name
+  )}`;
+
+  // 只在主目录中生成 info
+  const info = includeInfo
+    ? `export const info = \`
 ${config.info || ""}
-\``;
+\``
+    : "";
 
   const documentLink = `export const documentLink = \`
 ${config.url || ""}
@@ -183,33 +281,43 @@ ${config.textUrl || ""}
 ${config.figma || ""}
 \``;
 
+  // 根据项目名称配置 OSS 和 Jenkins 地址
+  const projectConfigs = {
+    Yoho: {
+      ossBucket: "yoho-activity-www",
+      jenkinsJob: "yoho",
+    },
+    Hiyoo: {
+      ossBucket: "hiyoo-activity-www",
+      jenkinsJob: "hiyoo",
+    },
+    SoulStar: {
+      ossBucket: "soulstar-activity-www",
+      jenkinsJob: "soulstar",
+    },
+    DramaBit: {
+      ossBucket: "dramebit-activity-www",
+      jenkinsJob: "dramebit",
+    },
+  };
+
+  const currentConfig = projectConfigs[projectName] || projectConfigs.Yoho;
+
   const ossLink = `export const ossLink = \`
-https://oss.console.aliyun.com/bucket/oss-ap-southeast-1/yoho-activity-www/object/upload?path=activity%2F${
-    config.catalog || ""
-  }_${capitalizeFirstLetter(config.name)}%2F
+https://oss.console.aliyun.com/bucket/oss-ap-southeast-1/${currentConfig.ossBucket}/object/upload?path=activity%2F${activityPath}%2F
 \``;
 
-  const yohoTestJenkinsLink = `export const yohoTestJenkinsLink = \`
-https://jenkins-web.waka.media/job/yoho/job/TestEnv/job/web-activity/job/activity-vite/build?delay=0sec
+  const testJenkinsLink = `export const testJenkinsLink = \`
+https://jenkins-web.waka.media/job/${currentConfig.jenkinsJob}/job/TestEnv/job/web-activity/job/activity-vite/build?delay=0sec
 \``;
 
-  const yohoProdJenkinsLink = `export const yohoProdJenkinsLink = \`
-https://jenkins-web.waka.media/job/yoho/job/ProdEnv/job/web-activity/job/activity-vite/build?delay=0sec
-\``;
-
-  const hiyooTestJenkinsLink = `export const hiyooTestJenkinsLink = \`
-https://jenkins-web.waka.media/job/hiyoo/job/TestEnv/job/web-activity/job/activity-vite/build?delay=0sec
-\``;
-
-  const hiyooProdJenkinsLink = `export const hiyooProdJenkinsLink = \`
-https://jenkins-web.waka.media/job/hiyoo/job/ProdEnv/job/web-activity/job/activity-vite/build?delay=0sec
+  const prodJenkinsLink = `export const prodJenkinsLink = \`
+https://jenkins-web.waka.media/job/${currentConfig.jenkinsJob}/job/ProdEnv/job/web-activity/job/activity-vite/build?delay=0sec
 \``;
 
   return `export const config = {
   activityId: ${config.id || 0},
-  projectName: '/activity/${config.catalog || ""}_${capitalizeFirstLetter(
-    config.name
-  )}',
+  projectName: '/activity/${activityPath}',
   backgroundColor: '${config.bgc || ""}',
 }
 ${info}
@@ -217,10 +325,8 @@ ${documentLink}
 ${textLink}
 ${figmaLink}
 ${ossLink}
-${yohoTestJenkinsLink}
-${yohoProdJenkinsLink}
-${hiyooTestJenkinsLink}
-${hiyooProdJenkinsLink}
+${testJenkinsLink}
+${prodJenkinsLink}
 `;
 }
 
@@ -286,23 +392,117 @@ async function handleDownloadTemplate(req, res) {
         fs.rmSync(targetDir, { recursive: true, force: true });
       }
 
-      // 下载模板
+      // 下载主模板 activity
       await downloadGitHubDir(remotePath, targetDir);
 
-      // 生成并写入 config.ts
+      // 处理提测信息
+      handleInfo(data);
+
+      // 生成并写入主目录的 config.ts
       const configPath = path.join(targetDir, "config.ts");
       const configContent = generateConfigContent(data);
       fs.writeFileSync(configPath, configContent, "utf8");
-      console.log(chalk.gray(`  重写: config.ts`));
+      console.log(chalk.gray(`  重写: ${activityName}/config.ts`));
 
-      console.log(chalk.green(`✓ 模板下载完成!\n`));
+      // 记录所有创建的目录
+      const createdDirs = [targetDir];
+
+      // 如果 op 为 true，下载 activity_op 目录
+      const isOp = data.op === "true" || data.op === true;
+      const opNum = parseInt(data.opNum) || 1;
+
+      if (isOp && opNum > 0) {
+        const remoteOpPath = `template/${templateDir}/activity_op`;
+
+        for (let i = 1; i <= opNum; i++) {
+          // 目录命名: {name}_op1, {name}_op2, ...
+          const opDirName = `${activityName}_op${opNum === 1 ? "" : i}`;
+          const opTargetDir = path.join(catalogDir, opDirName);
+
+          console.log(
+            chalk.cyan(`\n📦 下载 OP 模板 ${i}/${opNum}: ${opDirName}`)
+          );
+
+          // 清理已存在的目录
+          if (fs.existsSync(opTargetDir)) {
+            fs.rmSync(opTargetDir, { recursive: true, force: true });
+          }
+
+          // 下载 activity_op 模板
+          await downloadGitHubDir(remoteOpPath, opTargetDir);
+
+          // 生成 OP 目录的 config.ts（不包含提测信息）
+          const opData = {
+            ...data,
+            name: opDirName,
+          };
+          const opConfigPath = path.join(opTargetDir, "config.ts");
+          const opConfigContent = generateConfigContent(opData, {
+            includeInfo: false,
+          });
+          fs.writeFileSync(opConfigPath, opConfigContent, "utf8");
+          console.log(chalk.gray(`  重写: ${opDirName}/config.ts`));
+
+          createdDirs.push(opTargetDir);
+        }
+      }
+
+      // 如果 hot 为 true，下载 activity_op_hot 目录
+      const isHot = data.hot === "true" || data.hot === true;
+      const hotNum = parseInt(data.hotNum) || 1;
+
+      if (isHot && hotNum > 0) {
+        const remoteHotPath = `template/${templateDir}/activity_op_hot`;
+
+        for (let i = 1; i <= hotNum; i++) {
+          // 目录命名: {name}_op_hot1, {name}_op_hot2, ...
+          const hotDirName = `${activityName}_op_hot${hotNum === 1 ? "" : i}`;
+          const hotTargetDir = path.join(catalogDir, hotDirName);
+
+          console.log(
+            chalk.cyan(`\n📦 下载 HOT 模板 ${i}/${hotNum}: ${hotDirName}`)
+          );
+
+          // 清理已存在的目录
+          if (fs.existsSync(hotTargetDir)) {
+            fs.rmSync(hotTargetDir, { recursive: true, force: true });
+          }
+
+          // 下载 activity_op_hot 模板
+          try {
+            await downloadGitHubDir(remoteHotPath, hotTargetDir);
+
+            // 生成 HOT 目录的 config.ts（不包含提测信息）
+            const hotData = {
+              ...data,
+              name: hotDirName,
+            };
+            const hotConfigPath = path.join(hotTargetDir, "config.ts");
+            const hotConfigContent = generateConfigContent(hotData, {
+              includeInfo: false,
+            });
+            fs.writeFileSync(hotConfigPath, hotConfigContent, "utf8");
+            console.log(chalk.gray(`  重写: ${hotDirName}/config.ts`));
+
+            createdDirs.push(hotTargetDir);
+          } catch (err) {
+            console.log(chalk.yellow(`  ⚠️ activity_op_hot 模板不存在，跳过`));
+            break; // 如果模板不存在，跳出循环
+          }
+        }
+      }
+
+      console.log(
+        chalk.green(`\n✓ 模板下载完成! 共创建 ${createdDirs.length} 个目录\n`)
+      );
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
           success: true,
-          message: `模板已下载到: ${targetDir}`,
-          targetDir,
+          message: `模板已下载到: ${catalogDir}`,
+          targetDir: catalogDir,
+          createdDirs,
         })
       );
     } catch (error) {

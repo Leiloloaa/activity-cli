@@ -641,11 +641,16 @@
                 placeholder="swiper op num, default 1"
               />
             </el-form-item>
-            <el-form-item label="Hot banner">
+            <el-form-item label="Hot banner" style="display: flex">
               <el-radio-group v-model="form.hot">
                 <el-radio-button label="true"></el-radio-button>
                 <el-radio-button label="false"></el-radio-button>
               </el-radio-group>
+              <el-input
+                v-model="form.hotNum"
+                style="width: 225px; margin-left: 10px"
+                placeholder="hot num, default 1"
+              />
             </el-form-item>
           </el-form>
         </div>
@@ -771,6 +776,7 @@
             info: "", // 提测信息
             activityUrl: "", // 活动链接
             opNum: "",
+            hotNum: "",
             fullscreenLoading: false,
             uploadType: "text", // 上传类型：'text' 或 'excel'
           });
@@ -997,6 +1003,10 @@ ${form.hot == "true" ? `${master}_op_hot/index.html?lang=&key=` : "--"}
                 bgc: form.bgc,
                 catalog: form.catalog,
                 info: form.info,
+                op: form.op,
+                opNum: form.opNum || 1,
+                hot: form.hot,
+                hotNum: form.hotNum || 1,
               });
 
               if (res.data.success) {
