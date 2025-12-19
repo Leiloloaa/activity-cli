@@ -1,149 +1,249 @@
-# web-preview-cli
+# Activity Web CLI (actweb)
 
-一个用于从 Git 仓库下载网页并启动本地服务器预览的 CLI 工具。
-
-## 功能特性
-
-- 🚀 从 Git 仓库快速下载网页
-- 🌐 自动启动本地 HTTP 服务器
-- 🔗 自动打开浏览器预览
-- 📁 支持目录列表浏览
-- 🧹 退出时自动清理临时文件
-- ⚙️ 支持配置文件存储默认仓库
+一个用于快速创建活动页面的命令行工具，支持从 GitHub 下载模板、本地预览、智能缓存等功能。
 
 ## 安装
 
-### 全局安装
-
 ```bash
+# 全局安装
 npm install -g web-preview-cli
+
+# 或从本地安装
+npm install -g ./web-preview-cli-1.0.0.tgz
 ```
 
-### 本地安装
+## 命令
+
+### `actweb create`
+
+启动 Activity 创建工具，打开一个表单页面用于创建活动项目。
 
 ```bash
-cd web-preview-cli
-npm install
-npm link
+actweb create
+actweb create -p 8080        # 指定端口
+actweb create --no-open      # 不自动打开浏览器
 ```
 
-## 使用方法
+**功能：**
+- 从 GitHub 下载创建表单页面
+- 填写表单后点击 "Down Template" 下载项目模板
+- 自动生成 `config.ts` 配置文件
+- 支持下载 `activity`、`activity_op`、`activity_op_hot` 目录
 
-### 快速开始
+### `actweb cache`
+
+管理模板缓存。
 
 ```bash
-# 指定仓库地址启动预览
-webp -r https://github.com/user/web-page.git
-
-# 使用简写
-webp start -r https://github.com/user/web-page.git
+actweb cache           # 查看缓存状态
+actweb cache -v        # 查看缓存状态（同上）
+actweb cache -r        # 强制刷新缓存
+actweb cache -c        # 清除缓存
 ```
 
-### 配置默认仓库
+**输出示例：**
+```
+📁 缓存目录: /Users/xxx/.actweb-cache
+📌 缓存版本: a1b2c3d
+✓ 已缓存的项目:
+  yoho: activity, activity_op, activity_op_hot
+  hiyoo: activity, activity_op, activity_op_hot
+  soulstar: activity, activity_op, activity_op_hot
+  dramebit: activity, activity_op, activity_op_hot
+```
+
+### `actweb url <htmlUrl>`
+
+从指定 URL 下载 HTML 文件并本地预览。
 
 ```bash
-# 设置默认仓库地址
-webp config -s https://github.com/user/web-page.git
-
-# 设置默认仓库和分支
-webp config -s https://github.com/user/web-page.git -b main
-
-# 查看当前配置
-webp config -v
-
-# 删除配置
-webp config -d
+actweb url https://example.com/page.html
+actweb url https://github.com/user/repo/blob/main/index.html
 ```
 
-配置设置后，直接运行 `webp` 即可启动预览。
+### `actweb start`
 
-### 命令选项
+从 Git 仓库下载网页并启动预览服务器。
 
 ```bash
-webp [start] [options]
-
-选项:
-  -r, --repo <repo>     Git 仓库地址
-  -b, --branch <branch> 分支名 (默认: main)
-  -p, --port <port>     服务器端口 (默认: 3000)
-  --no-open             不自动打开浏览器
-  -V, --version         显示版本号
-  -h, --help            显示帮助信息
+actweb start -r https://github.com/user/repo
+actweb start -r https://github.com/user/repo -b develop
 ```
 
-### 示例
+### `actweb config`
+
+管理配置。
 
 ```bash
-# 使用默认配置启动
-webp
-
-# 指定仓库启动
-webp -r https://github.com/user/repo.git
-
-# 指定分支和端口
-webp -r https://github.com/user/repo.git -b develop -p 8080
-
-# 不自动打开浏览器
-webp -r https://github.com/user/repo.git --no-open
+actweb config              # 查看当前配置
+actweb config -s <repo>    # 设置默认仓库
+actweb config -b <branch>  # 设置默认分支
+actweb config -d           # 删除配置
 ```
 
-## 工作流程
+## 缓存机制
 
-1. 从指定的 Git 仓库克隆代码（浅克隆，只下载最新提交）
-2. 自动检测网页目录（支持 `dist`、`build`、`public` 等常见目录）
-3. 启动本地 HTTP 服务器
-4. 自动在浏览器中打开网页
-5. 按 `Ctrl+C` 停止服务器并自动清理临时文件
+### 智能缓存
 
-## 支持的目录结构
+为了加快模板下载速度，工具实现了智能缓存机制：
 
-工具会自动检测以下目录作为网页根目录：
+1. **预缓存**：运行 `actweb create` 时，后台自动预下载所有项目模板
+2. **版本控制**：通过 GitHub commit SHA 检测模板更新
+3. **自动更新**：检测到远程模板更新时，自动刷新缓存
 
-- 根目录 `/`
-- `dist/` - 构建输出目录
-- `build/` - 构建输出目录
-- `public/` - 公共文件目录
-- `www/` - 网页目录
-- `docs/` - 文档目录
-- `site/` - 站点目录
-- `src/` - 源码目录
+### 缓存目录结构
 
-## 配置文件
+```
+~/.actweb-cache/
+├── .version              # 版本标识（commit SHA）
+├── yoho/
+│   ├── activity/         # 主活动模板
+│   ├── activity_op/      # OP 模板
+│   └── activity_op_hot/  # HOT 模板
+├── hiyoo/
+│   └── ...
+├── soulstar/
+│   └── ...
+└── dramebit/
+    └── ...
+```
 
-配置文件保存在用户主目录下：`~/.web-preview-cli-config.json`
+### 缓存工作流程
 
-```json
-{
-  "repository": "https://github.com/user/repo.git",
-  "branch": "main"
+```
+启动 actweb create
+       ↓
+  获取远程版本 (commit SHA)
+       ↓
+  对比本地 .version 文件
+       ↓
+┌─────────────────────────┐
+│  版本一致?              │
+├───────┬─────────────────┤
+│  是   │       否        │
+│   ↓   │        ↓        │
+│ 使用  │  清除旧缓存      │
+│ 缓存  │       ↓         │
+│       │  重新下载模板    │
+│       │       ↓         │
+│       │  保存新版本      │
+└───────┴─────────────────┘
+```
+
+### 特殊情况处理
+
+| 情况           | 处理方式             |
+| -------------- | -------------------- |
+| 网络错误       | 使用本地缓存         |
+| 缓存正在下载中 | 等待下载完成后再使用 |
+| 没有缓存       | 从 GitHub 下载       |
+| 远程模板更新   | 自动刷新缓存         |
+
+## 下载模板功能
+
+### 支持的项目
+
+- **Yoho**
+- **Hiyoo**
+- **SoulStar**
+- **DramaBit**
+
+### 下载的目录
+
+根据表单选项，可下载以下目录：
+
+| 选项       | 目录                                                   | 数量           |
+| ---------- | ------------------------------------------------------ | -------------- |
+| 主活动     | `{name}`                                               | 1              |
+| Swiper OP  | `{name}_op`, `{name}_op1`, `{name}_op2`...             | 由 opNum 决定  |
+| Hot Banner | `{name}_op_hot`, `{name}_op_hot1`, `{name}_op_hot2`... | 由 hotNum 决定 |
+
+### 目标目录
+
+模板会下载到：
+```
+{当前工作目录}/src/page/{catalog}/{name}/
+```
+
+### config.ts 自动生成
+
+每个下载的目录都会自动生成 `config.ts` 文件，包含：
+
+```typescript
+export const config = {
+  activityId: 123,
+  projectName: '/activity/202412_Christmas',
+  backgroundColor: '#ff0000',
 }
+
+export const info = `...提测信息...`  // 仅主目录包含
+
+export const documentLink = `...需求文档链接...`
+export const textLink = `...文案链接...`
+export const figmaLink = `...Figma链接...`
+export const ossLink = `...OSS上传地址...`
+export const testJenkinsLink = `...测试环境Jenkins...`
+export const prodJenkinsLink = `...生产环境Jenkins...`
 ```
 
-## 注意事项
+## 编程接口
 
-- 需要确保已安装 Node.js (>=14.0.0)
-- 需要确保已安装 git
-- 需要有网络连接访问远程仓库
-- 临时文件会在程序退出时自动清理
-
-## API 使用
-
-也可以作为模块在代码中使用：
+可以作为模块在代码中使用：
 
 ```javascript
-const { preview, createServer } = require('web-preview-cli');
+const {
+  // 预览功能
+  preview,
+  previewUrl,
+  downloadFile,
+  convertToRawUrl,
 
-// 启动预览
-await preview({
-  repository: 'https://github.com/user/repo.git',
-  branch: 'main',
-  port: 3000,
-  autoOpen: true
-});
+  // 配置功能
+  getConfig,
+  setConfig,
+  showConfig,
+  deleteConfig,
 
-// 或者只启动服务器
-const server = await createServer('/path/to/web/root', 3000);
+  // 服务器功能
+  createServer,
+
+  // 缓存功能
+  preCacheTemplates,
+  clearCache,
+  getCacheInfo,
+  CACHE_DIR,
+  VERSION_FILE,
+} = require('web-preview-cli');
+
+// 清除缓存
+clearCache();
+
+// 获取缓存信息
+const info = getCacheInfo();
+console.log(info);
+// {
+//   cacheDir: '/Users/xxx/.actweb-cache',
+//   exists: true,
+//   version: 'a1b2c3d...',
+//   projects: [
+//     { name: 'yoho', templates: ['activity', 'activity_op', 'activity_op_hot'] },
+//     ...
+//   ]
+// }
+
+// 预缓存模板
+await preCacheTemplates();
+
+// 强制刷新缓存
+await preCacheTemplates(true);
 ```
+
+## 性能优化
+
+| 操作              | 无缓存   | 有缓存 |
+| ----------------- | -------- | ------ |
+| 下载单个模板      | ~5-10秒  | ~0.1秒 |
+| 下载 3 个 OP 模板 | ~15-30秒 | ~0.3秒 |
 
 ## License
 

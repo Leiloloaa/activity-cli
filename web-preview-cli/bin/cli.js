@@ -8,7 +8,9 @@ const {
   showConfig,
   deleteConfig,
 } = require("../lib/config");
+const { preCacheTemplates, CACHE_DIR } = require("../lib/server");
 const chalk = require("chalk");
+const fs = require("fs");
 
 // Activity 创建页面的默认 URL
 const ACTIVITY_CREATE_URL =
@@ -135,6 +137,59 @@ program
     } catch (error) {
       console.error(chalk.red("错误:"), error.message);
       process.exit(1);
+    }
+  });
+
+// 缓存管理命令
+program
+  .command("cache")
+  .description("管理模板缓存")
+  .option("-r, --refresh", "强制刷新缓存（从远程重新下载）")
+  .option("-c, --clear", "清除缓存")
+  .option("-v, --view", "查看缓存状态")
+  .action(async (options) => {
+    if (options.clear) {
+      if (fs.existsSync(CACHE_DIR)) {
+        fs.rmSync(CACHE_DIR, { recursive: true, force: true });
+        console.log(chalk.green("✓ 缓存已清除"));
+      } else {
+        console.log(chalk.gray("缓存目录不存在"));
+      }
+    } else if (options.refresh) {
+      console.log(chalk.cyan("正在强制刷新缓存..."));
+      await preCacheTemplates(true); // 传入 true 强制刷新
+    } else {
+      // 默认查看缓存状态
+      console.log(chalk.cyan("\n📁 缓存目录:"), CACHE_DIR);
+
+      // 显示版本信息
+      const versionFile = require("path").join(CACHE_DIR, ".version");
+      if (fs.existsSync(versionFile)) {
+        const version = fs.readFileSync(versionFile, "utf8").trim();
+        console.log(chalk.gray(`📌 缓存版本: ${version.substring(0, 7)}`));
+      }
+
+      if (fs.existsSync(CACHE_DIR)) {
+        const items = fs.readdirSync(CACHE_DIR);
+        const projects = items.filter((p) => {
+          const projectDir = require("path").join(CACHE_DIR, p);
+          return fs.statSync(projectDir).isDirectory();
+        });
+
+        if (projects.length > 0) {
+          console.log(chalk.green("✓ 已缓存的项目:"));
+          projects.forEach((p) => {
+            const projectDir = require("path").join(CACHE_DIR, p);
+            const templates = fs.readdirSync(projectDir);
+            console.log(chalk.gray(`  ${p}: ${templates.join(", ")}`));
+          });
+        } else {
+          console.log(chalk.yellow("缓存为空"));
+        }
+      } else {
+        console.log(chalk.yellow("缓存目录不存在，运行 'actweb create' 时会自动创建"));
+      }
+      console.log(chalk.gray("\n提示: 使用 'actweb cache -r' 强制刷新缓存"));
     }
   });
 

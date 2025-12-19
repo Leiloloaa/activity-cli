@@ -2,11 +2,23 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const chalk = require("chalk");
 
 // GitHub 仓库配置
 const GITHUB_REPO = "Leiloloaa/activity-cli";
 const GITHUB_BRANCH = "main";
+
+// 模板缓存目录
+const CACHE_DIR = path.join(os.homedir(), ".actweb-cache");
+const VERSION_FILE = path.join(CACHE_DIR, ".version");
+const TEMPLATE_PROJECTS = ["yoho", "hiyoo", "soulstar", "dramebit"];
+const TEMPLATE_TYPES = ["activity", "activity_op", "activity_op_hot"];
+
+// 缓存状态
+let cacheReady = false;
+let cachePromise = null;
+let remoteVersion = null;
 
 // MIME 类型映射
 const MIME_TYPES = {
@@ -70,6 +82,89 @@ function findIndexFile(rootDir) {
   }
 
   return null;
+}
+
+/**
+ * 获取远程仓库的最新 commit SHA（用于版本控制）
+ */
+function fetchRemoteVersion() {
+  return new Promise((resolve, reject) => {
+    const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`;
+
+    const options = {
+      headers: {
+        "User-Agent": "activity-cli",
+        Accept: "application/vnd.github.v3+json",
+      },
+    };
+
+    https
+      .get(apiUrl, options, (response) => {
+        let data = "";
+        response.on("data", (chunk) => (data += chunk));
+        response.on("end", () => {
+          if (response.statusCode === 200) {
+            const result = JSON.parse(data);
+            resolve(result.sha);
+          } else {
+            // 网络错误时返回 null，不阻断流程
+            resolve(null);
+          }
+        });
+      })
+      .on("error", () => resolve(null));
+  });
+}
+
+/**
+ * 获取本地缓存版本
+ */
+function getLocalVersion() {
+  try {
+    if (fs.existsSync(VERSION_FILE)) {
+      return fs.readFileSync(VERSION_FILE, "utf8").trim();
+    }
+  } catch {
+    // 忽略错误
+  }
+  return null;
+}
+
+/**
+ * 保存本地缓存版本
+ */
+function saveLocalVersion(version) {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+    }
+    fs.writeFileSync(VERSION_FILE, version, "utf8");
+  } catch {
+    // 忽略错误
+  }
+}
+
+/**
+ * 检查缓存版本是否有效
+ */
+async function checkCacheVersion() {
+  const localVersion = getLocalVersion();
+  if (!localVersion) return false;
+
+  // 获取远程版本
+  remoteVersion = await fetchRemoteVersion();
+  if (!remoteVersion) {
+    // 网络错误时，使用本地缓存
+    console.log(chalk.gray("  无法获取远程版本，使用本地缓存"));
+    return true;
+  }
+
+  if (localVersion === remoteVersion) {
+    return true;
+  }
+
+  console.log(chalk.yellow("  检测到模板更新，将刷新缓存"));
+  return false;
 }
 
 /**
@@ -151,6 +246,147 @@ async function downloadGitHubDir(remotePath, localPath) {
       await downloadGitHubFile(item.download_url, itemLocalPath);
     }
   }
+}
+
+/**
+ * 检查缓存是否存在且有效
+ */
+function isCacheValid(projectDir) {
+  if (!fs.existsSync(projectDir)) return false;
+  // 检查是否有 activity 目录
+  const activityDir = path.join(projectDir, "activity");
+  return fs.existsSync(activityDir);
+}
+
+/**
+ * 获取缓存的模板路径
+ */
+function getCachedTemplatePath(projectName, templateType) {
+  const projectDir = projectName.toLowerCase();
+  return path.join(CACHE_DIR, projectDir, templateType);
+}
+
+/**
+ * 预缓存所有项目模板（后台异步执行）
+ * @param {boolean} forceRefresh - 是否强制刷新缓存
+ */
+async function preCacheTemplates(forceRefresh = false) {
+  if (cacheReady && !forceRefresh) return;
+  if (cachePromise && !forceRefresh) return cachePromise;
+
+  cachePromise = (async () => {
+    console.log(chalk.cyan("\n🚀 检查模板缓存..."));
+
+    // 检查版本是否有效
+    const versionValid = await checkCacheVersion();
+    const needRefresh = forceRefresh || !versionValid;
+
+    // 如果版本有效且缓存存在，直接返回
+    if (!needRefresh) {
+      const allCached = TEMPLATE_PROJECTS.every((p) =>
+        isCacheValid(path.join(CACHE_DIR, p))
+      );
+      if (allCached) {
+        console.log(chalk.green("✓ 模板缓存已是最新"));
+        cacheReady = true;
+        return;
+      }
+    }
+
+    // 需要刷新缓存
+    if (needRefresh && fs.existsSync(CACHE_DIR)) {
+      // 清除旧缓存
+      for (const project of TEMPLATE_PROJECTS) {
+        const projectDir = path.join(CACHE_DIR, project);
+        if (fs.existsSync(projectDir)) {
+          fs.rmSync(projectDir, { recursive: true, force: true });
+        }
+      }
+    }
+
+    console.log(chalk.cyan("  下载模板中..."));
+
+    // 确保缓存目录存在
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+    }
+
+    // 并行下载所有项目的模板
+    const downloadTasks = [];
+
+    for (const project of TEMPLATE_PROJECTS) {
+      const projectCacheDir = path.join(CACHE_DIR, project);
+
+      // 确保项目缓存目录存在
+      if (!fs.existsSync(projectCacheDir)) {
+        fs.mkdirSync(projectCacheDir, { recursive: true });
+      }
+
+      for (const templateType of TEMPLATE_TYPES) {
+        const remotePath = `template/${project}/${templateType}`;
+        const localPath = path.join(projectCacheDir, templateType);
+
+        downloadTasks.push(
+          downloadGitHubDir(remotePath, localPath).catch((err) => {
+            // 忽略不存在的模板目录
+          })
+        );
+      }
+    }
+
+    if (downloadTasks.length > 0) {
+      await Promise.all(downloadTasks);
+
+      // 保存版本信息
+      if (remoteVersion) {
+        saveLocalVersion(remoteVersion);
+      } else {
+        // 如果之前没获取到版本，现在获取并保存
+        const version = await fetchRemoteVersion();
+        if (version) {
+          saveLocalVersion(version);
+        }
+      }
+
+      console.log(chalk.green("✓ 模板预缓存完成"));
+    }
+
+    cacheReady = true;
+  })();
+
+  return cachePromise;
+}
+
+/**
+ * 等待缓存准备就绪
+ */
+async function waitForCache() {
+  if (cacheReady) return true;
+  if (cachePromise) {
+    try {
+      await cachePromise;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * 从缓存复制模板到目标目录
+ */
+function copyFromCache(cachePath, targetPath) {
+  if (!fs.existsSync(cachePath)) {
+    return false;
+  }
+
+  if (fs.existsSync(targetPath)) {
+    fs.rmSync(targetPath, { recursive: true, force: true });
+  }
+
+  fs.cpSync(cachePath, targetPath, { recursive: true });
+  return true;
 }
 
 /**
@@ -367,7 +603,10 @@ async function handleDownloadTemplate(req, res) {
       const catalogDir = path.join(srcPageDir, catalog);
       const targetDir = path.join(catalogDir, activityName);
 
-      console.log(chalk.cyan(`\n📦 下载模板到: src/page/${catalog}/`));
+      console.log(chalk.cyan(`\n📦 创建模板到: src/page/${catalog}/`));
+
+      // 等待缓存准备就绪（如果正在缓存中）
+      const cacheAvailable = await waitForCache();
 
       // 确保目录存在
       if (!fs.existsSync(srcPageDir)) {
@@ -382,8 +621,12 @@ async function handleDownloadTemplate(req, res) {
         fs.rmSync(targetDir, { recursive: true, force: true });
       }
 
-      // 下载主模板 activity
-      await downloadGitHubDir(remotePath, targetDir);
+      // 优先从缓存复制，否则从 GitHub 下载
+      const activityCachePath = getCachedTemplatePath(templateDir, "activity");
+      if (!cacheAvailable || !copyFromCache(activityCachePath, targetDir)) {
+        console.log(chalk.gray("  从 GitHub 下载..."));
+        await downloadGitHubDir(remotePath, targetDir);
+      }
 
       // 处理提测信息
       handleInfo(data);
@@ -404,7 +647,7 @@ async function handleDownloadTemplate(req, res) {
       if (isOp && opNum > 0) {
         const remoteOpPath = `template/${templateDir}/activity_op`;
 
-        // 第一个 OP 目录：从 GitHub 下载
+        // 第一个 OP 目录：优先从缓存复制
         const firstOpDirName = `${activityName}_op${opNum === 1 ? "" : 1}`;
         const firstOpTargetDir = path.join(catalogDir, firstOpDirName);
 
@@ -412,7 +655,10 @@ async function handleDownloadTemplate(req, res) {
           fs.rmSync(firstOpTargetDir, { recursive: true, force: true });
         }
 
-        await downloadGitHubDir(remoteOpPath, firstOpTargetDir);
+        const opCachePath = getCachedTemplatePath(templateDir, "activity_op");
+        if (!cacheAvailable || !copyFromCache(opCachePath, firstOpTargetDir)) {
+          await downloadGitHubDir(remoteOpPath, firstOpTargetDir);
+        }
 
         // 重写第一个目录的 config.ts
         const firstOpData = { ...data, name: firstOpDirName };
@@ -461,7 +707,7 @@ async function handleDownloadTemplate(req, res) {
       if (isHot && hotNum > 0) {
         const remoteHotPath = `template/${templateDir}/activity_op_hot`;
 
-        // 第一个 HOT 目录：从 GitHub 下载
+        // 第一个 HOT 目录：优先从缓存复制
         const firstHotDirName = `${activityName}_op_hot${
           hotNum === 1 ? "" : 1
         }`;
@@ -472,7 +718,16 @@ async function handleDownloadTemplate(req, res) {
         }
 
         try {
-          await downloadGitHubDir(remoteHotPath, firstHotTargetDir);
+          const hotCachePath = getCachedTemplatePath(
+            templateDir,
+            "activity_op_hot"
+          );
+          if (
+            !cacheAvailable ||
+            !copyFromCache(hotCachePath, firstHotTargetDir)
+          ) {
+            await downloadGitHubDir(remoteHotPath, firstHotTargetDir);
+          }
 
           // 重写第一个目录的 config.ts
           const firstHotData = { ...data, name: firstHotDirName };
@@ -637,6 +892,8 @@ function createServer(rootDir, port) {
     });
 
     server.listen(port, () => {
+      // 服务器启动后，后台预缓存模板
+      preCacheTemplates().catch(() => {});
       resolve(server);
     });
   });
@@ -750,7 +1007,60 @@ function generateDirectoryListing(dirPath, urlPath) {
   return html;
 }
 
+/**
+ * 清除模板缓存
+ */
+function clearCache() {
+  if (fs.existsSync(CACHE_DIR)) {
+    fs.rmSync(CACHE_DIR, { recursive: true, force: true });
+    cacheReady = false;
+    cachePromise = null;
+    remoteVersion = null;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 获取缓存信息
+ */
+function getCacheInfo() {
+  const info = {
+    cacheDir: CACHE_DIR,
+    exists: fs.existsSync(CACHE_DIR),
+    version: null,
+    projects: [],
+  };
+
+  if (info.exists) {
+    // 获取版本
+    if (fs.existsSync(VERSION_FILE)) {
+      info.version = fs.readFileSync(VERSION_FILE, "utf8").trim();
+    }
+
+    // 获取项目列表
+    const items = fs.readdirSync(CACHE_DIR);
+    for (const item of items) {
+      const itemPath = path.join(CACHE_DIR, item);
+      if (fs.statSync(itemPath).isDirectory()) {
+        const templates = fs.readdirSync(itemPath);
+        info.projects.push({
+          name: item,
+          templates: templates,
+        });
+      }
+    }
+  }
+
+  return info;
+}
+
 module.exports = {
   createServer,
   findIndexFile,
+  preCacheTemplates,
+  clearCache,
+  getCacheInfo,
+  CACHE_DIR,
+  VERSION_FILE,
 };
