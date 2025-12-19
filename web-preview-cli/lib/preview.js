@@ -3,10 +3,85 @@ const fs = require("fs");
 const path = require("path");
 const chalk = require("chalk");
 const open = require("open");
+const https = require("https");
+const http = require("http");
 const { createServer, findIndexFile } = require("./server");
 
 // 临时目录名称
 const TEMP_DIR_NAME = ".web-preview-temp";
+
+/**
+ * 将 GitHub blob URL 转换为 raw URL
+ * @param {string} url - GitHub URL
+ * @returns {string} - raw URL
+ */
+function convertToRawUrl(url) {
+  // https://github.com/user/repo/blob/branch/path/file.html
+  // -> https://raw.githubusercontent.com/user/repo/branch/path/file.html
+  if (url.includes("github.com") && url.includes("/blob/")) {
+    return url
+      .replace("github.com", "raw.githubusercontent.com")
+      .replace("/blob/", "/");
+  }
+  return url;
+}
+
+/**
+ * 从 URL 下载文件
+ * @param {string} url - 文件 URL
+ * @param {string} destPath - 目标路径
+ * @returns {Promise<void>}
+ */
+function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const rawUrl = convertToRawUrl(url);
+    const protocol = rawUrl.startsWith("https") ? https : http;
+
+    const request = protocol.get(rawUrl, (response) => {
+      // 处理重定向
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        return downloadFile(response.headers.location, destPath)
+          .then(resolve)
+          .catch(reject);
+      }
+
+      if (response.statusCode !== 200) {
+        reject(new Error(`下载失败，状态码: ${response.statusCode}`));
+        return;
+      }
+
+      const fileStream = fs.createWriteStream(destPath);
+      response.pipe(fileStream);
+
+      fileStream.on("finish", () => {
+        fileStream.close();
+        resolve();
+      });
+
+      fileStream.on("error", (err) => {
+        fs.unlink(destPath, () => {}); // 删除不完整的文件
+        reject(err);
+      });
+    });
+
+    request.on("error", reject);
+    request.setTimeout(30000, () => {
+      request.destroy();
+      reject(new Error("下载超时"));
+    });
+  });
+}
+
+/**
+ * 从 URL 获取文件名
+ * @param {string} url
+ * @returns {string}
+ */
+function getFileNameFromUrl(url) {
+  const urlPath = new URL(url).pathname;
+  const fileName = path.basename(urlPath);
+  return fileName || "index.html";
+}
 
 /**
  * 显示 loading 动画
@@ -178,6 +253,85 @@ async function preview(options) {
   }
 }
 
+/**
+ * 从 URL 下载单个 HTML 文件并预览
+ * @param {object} options
+ * @param {string} options.url - HTML 文件的 URL
+ * @param {number} options.port - 服务器端口
+ * @param {boolean} options.autoOpen - 是否自动打开浏览器
+ */
+async function previewUrl(options) {
+  const { url, port = 3000, autoOpen = true } = options;
+
+  // 临时目录
+  const tempDir = path.join(process.cwd(), TEMP_DIR_NAME);
+  let server = null;
+
+  // 清理函数
+  const cleanup = () => {
+    console.log(chalk.yellow("\n\n🧹 正在清理临时文件..."));
+    if (server) {
+      server.close();
+    }
+    cleanupTempDir(tempDir);
+    console.log(chalk.green("✓ 临时文件已清理"));
+  };
+
+  // 注册退出处理
+  const handleExit = () => {
+    cleanup();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", handleExit);
+  process.on("SIGTERM", handleExit);
+
+  try {
+    console.log(chalk.cyan("\n🚀 Web Preview CLI - URL 模式\n"));
+    console.log(chalk.gray("─".repeat(50)));
+    console.log(`  URL: ${chalk.green(url)}`);
+    console.log(`  端口: ${chalk.green(port)}`);
+    console.log(chalk.gray("─".repeat(50)));
+
+    // 清理并创建临时目录
+    cleanupTempDir(tempDir);
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    // 获取文件名
+    const fileName = getFileNameFromUrl(url);
+    const destPath = path.join(tempDir, fileName);
+
+    // 下载文件
+    await showLoading("正在下载 HTML 文件...", downloadFile(url, destPath));
+    console.log(chalk.green("✓ 下载完成！\n"));
+
+    // 启动服务器
+    server = await createServer(tempDir, port);
+
+    const localUrl = `http://localhost:${port}`;
+
+    console.log(chalk.green("✓ 服务器已启动！\n"));
+    console.log(chalk.cyan("🌐 访问地址:"));
+    console.log(`   ${chalk.bold.underline(localUrl)}\n`);
+    console.log(chalk.gray("按 Ctrl+C 停止服务器并清理临时文件\n"));
+
+    // 自动打开浏览器
+    if (autoOpen) {
+      await open(localUrl);
+      console.log(chalk.green("✓ 已在浏览器中打开\n"));
+    }
+
+    // 保持进程运行
+    await new Promise(() => {});
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+}
+
 module.exports = {
   preview,
+  previewUrl,
+  downloadFile,
+  convertToRawUrl,
 };

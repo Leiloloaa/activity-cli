@@ -1,4 +1,9 @@
-const { preview } = require("./lib/preview");
+const {
+  preview,
+  previewUrl,
+  downloadFile,
+  convertToRawUrl,
+} = require("./lib/preview");
 const {
   getConfig,
   setConfig,
@@ -9,6 +14,9 @@ const { createServer } = require("./lib/server");
 
 module.exports = {
   preview,
+  previewUrl,
+  downloadFile,
+  convertToRawUrl,
   getConfig,
   setConfig,
   showConfig,

@@ -4,8 +4,7 @@
   "description": "从 git 仓库下载网页并启动本地服务器预览",
   "main": "index.js",
   "bin": {
-    "webp": "./bin/cli.js",
-    "web-preview": "./bin/cli.js"
+    "actweb": "./bin/cli.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

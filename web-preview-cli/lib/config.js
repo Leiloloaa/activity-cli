@@ -47,7 +47,7 @@ async function showConfig() {
 
   if (!config) {
     console.log(chalk.yellow("\n未找到配置文件"));
-    console.log(chalk.gray('使用 "webp config -s <仓库地址>" 设置默认仓库'));
+    console.log(chalk.gray('使用 "actweb config -s <仓库地址>" 设置默认仓库'));
     return;
   }
 

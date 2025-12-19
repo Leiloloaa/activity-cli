@@ -28,7 +28,8 @@
       body {
         background: white;
         min-height: 100vh;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
       }
 
       .warp {
@@ -58,13 +59,18 @@
       }
 
       .title::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
         transition: left 0.8s;
       }
 
@@ -206,13 +212,18 @@
       }
 
       .el-button::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
         transition: left 0.5s;
       }
 
@@ -343,7 +354,7 @@
       }
 
       .step::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: 0;
@@ -562,13 +573,21 @@
             <el-form-item label="Activity id">
               <el-input v-model="form.id" />
             </el-form-item>
-            <el-form-item label="Document url" style="display: flex; align-items: center">
+            <el-form-item
+              label="Document url"
+              style="display: flex; align-items: center"
+            >
               <div style="width: 225px; margin-right: 10px">
                 <el-input v-model="form.url" placeholder="请输入需求文档链接" />
               </div>
-              <el-button type="primary" @click="openProjectDoc">✈️✈️✈️ 需求文档</el-button>
+              <el-button type="primary" @click="openProjectDoc"
+                >✈️✈️✈️ 需求文档</el-button
+              >
             </el-form-item>
-            <el-form-item label="Upload Text" v-if="form.projectName != 'SoulStar'">
+            <el-form-item
+              label="Upload Text"
+              v-if="form.projectName != 'SoulStar'"
+            >
               <el-radio-group v-model="form.uploadType">
                 <el-radio value="text">文案链接上传</el-radio>
                 <el-radio value="excel">本地 Excel 上传</el-radio>
@@ -580,7 +599,10 @@
             >
               <div style="display: flex; align-items: center; gap: 10px">
                 <div style="width: 225px">
-                  <el-input v-model="form.textUrl" placeholder="请输入文案链接" />
+                  <el-input
+                    v-model="form.textUrl"
+                    placeholder="请输入文案链接"
+                  />
                 </div>
                 <el-button
                   type="primary"
@@ -597,7 +619,9 @@
               label=""
               v-if="form.projectName != 'SoulStar' && form.uploadType === 'excel'"
             >
-              <el-button type="success" @click="handleFileChangeExcel">Excel 表格上传</el-button>
+              <el-button type="success" @click="handleFileChangeExcel"
+                >Excel 表格上传</el-button
+              >
             </el-form-item>
             <el-form-item label="Activity Figma">
               <el-input v-model="form.figma" />
@@ -634,9 +658,13 @@
             Create {{ form.projectName }} Activity
           </el-button>
 
-          <!-- <el-button v-if="form.projectName != 'Yoho'" type="warning" @click="updateBase">
-            Update Base
-          </el-button> -->
+          <el-button
+            type="success"
+            @click="downloadTemplate"
+            :loading="downloadLoading"
+          >
+            {{ downloadLoading ? '下载中...' : 'Down Template' }}
+          </el-button>
         </div>
       </div>
       <!-- 名单上传 -->
@@ -669,14 +697,18 @@
               <div class="step-number">2</div>
               <div class="step-content">
                 <div class="step-title">生成活动信息</div>
-                <div class="step-desc">根据填写的信息生成活动链接、测试信息等</div>
+                <div class="step-desc">
+                  根据填写的信息生成活动链接、测试信息等
+                </div>
               </div>
             </div>
             <div class="step">
               <div class="step-number">3</div>
               <div class="step-content">
                 <div class="step-title">执行 Python 脚本</div>
-                <div class="step-desc">调用后端脚本获取活动时间、地区信息等</div>
+                <div class="step-desc">
+                  调用后端脚本获取活动时间、地区信息等
+                </div>
               </div>
             </div>
             <div class="step">
@@ -696,15 +728,16 @@
               <div class="upload-method">
                 <div class="method-title">方式一：输入文档文案链接上传</div>
                 <div class="method-desc">
-                  在"Upload text1"输入框中填入文档文案链链接，点击"链接文案上传"按钮进行上传；（使用
+                  在"Upload
+                  text1"输入框中填入文档文案链链接，点击"链接文案上传"按钮进行上传；（使用
                   python 脚本上传）
                 </div>
               </div>
               <div class="upload-method">
                 <div class="method-title">方式二：使用Excel 表格上传</div>
                 <div class="method-desc">
-                  点击"excel 表格上传"按钮，选择包含文案内容的 Excel 文件进行批量上传；（使用 node
-                  接口转发上传）
+                  点击"excel 表格上传"按钮，选择包含文案内容的 Excel
+                  文件进行批量上传；（使用 node 接口转发上传）
                 </div>
               </div>
             </div>
@@ -714,100 +747,102 @@
     </div>
 
     <script>
-      const { createApp, ref, reactive, watch } = Vue
-      const ElementPlus = window.ElementPlus
-      const { ElMessage, ElIcon } = ElementPlus
+      const { createApp, ref, reactive, watch } = Vue;
+      const ElementPlus = window.ElementPlus;
+      const { ElMessage, ElIcon } = ElementPlus;
 
       const App = {
         setup() {
           const form = reactive({
-            projectName: 'Yoho',
-            isGeneral: 'false',
-            catalog: dayjs().format('YYYYMM'),
-            branch: '',
-            bgc: '',
-            name: '',
-            id: '',
-            url: '',
-            textUrl: '',
-            figma: '',
-            op: 'true',
-            hot: 'true',
-            branchCheck: 'false', // 默认不开启分支检测
-            info: '', // 提测信息
-            activityUrl: '', // 活动链接
-            opNum: '',
+            projectName: "Yoho",
+            isGeneral: "false",
+            catalog: dayjs().format("YYYYMM"),
+            branch: "",
+            bgc: "",
+            name: "",
+            id: "",
+            url: "",
+            textUrl: "",
+            figma: "",
+            op: "true",
+            hot: "true",
+            branchCheck: "false", // 默认不开启分支检测
+            info: "", // 提测信息
+            activityUrl: "", // 活动链接
+            opNum: "",
             fullscreenLoading: false,
-            uploadType: 'text' // 上传类型：'text' 或 'excel'
-          })
+            uploadType: "text", // 上传类型：'text' 或 'excel'
+          });
 
           // 添加上传加载状态
-          const uploadLoading = ref(false)
+          const uploadLoading = ref(false);
+          // 添加下载模板加载状态
+          const downloadLoading = ref(false);
 
           watch(
             () => form.isGeneral,
             () => {
-              if (form.isGeneral == 'true') {
-                form.catalog = 'general'
+              if (form.isGeneral == "true") {
+                form.catalog = "general";
               } else {
-                form.catalog = dayjs().format('YYYYMM')
+                form.catalog = dayjs().format("YYYYMM");
               }
             }
-          )
+          );
 
           const setItemWithExpiry = (key, value, expiryInHours) => {
-            const now = new Date()
+            const now = new Date();
 
             // 计算过期时间（当前时间 + 指定小时数）
-            const expiryTime = now.getTime() + expiryInHours * 60 * 60 * 1000
+            const expiryTime = now.getTime() + expiryInHours * 60 * 60 * 1000;
 
             // 创建一个对象，包含值和过期时间
             const item = {
               value: value,
-              expiry: expiryTime
-            }
+              expiry: expiryTime,
+            };
 
             // 将对象转为字符串并存储到 localStorage
-            localStorage.setItem(key, JSON.stringify(item))
-          }
+            localStorage.setItem(key, JSON.stringify(item));
+          };
 
           const getItemWithExpiry = (key) => {
-            console.log('获取数据:', key)
+            console.log("获取数据:", key);
 
-            const itemStr = localStorage.getItem(key)
+            const itemStr = localStorage.getItem(key);
 
             // 如果项目不存在，返回 null
             if (!itemStr) {
-              return null
+              return null;
             }
 
-            const item = JSON.parse(itemStr)
-            const now = new Date()
+            const item = JSON.parse(itemStr);
+            const now = new Date();
 
             // 检查当前时间是否超过过期时间
             if (now.getTime() > item.expiry) {
               // 如果过期，删除该项并返回 null
-              localStorage.removeItem(key)
-              return null
+              localStorage.removeItem(key);
+              return null;
             }
 
-            console.log('数据有效:', item.value)
+            console.log("数据有效:", item.value);
 
-            return item.value // 返回存储的值
-          }
+            return item.value; // 返回存储的值
+          };
 
           const getInfo = async () => {
-            const url = 'http://localhost:3000/info'
+            const url = "http://localhost:3000/info";
             try {
-              const response = await axios.get(url)
-              const { data } = response.data
-              Object.assign(form, data)
-              form.name = data.branch
+              const response = await axios.get(url);
+              const { data } = response.data;
+              Object.assign(form, data);
+              form.name = data.branch;
 
               // 使用示例
-              const oldForm = getItemWithExpiry('create_activity')
+              const oldForm = getItemWithExpiry("create_activity");
               if (oldForm) {
-                console.log('数据有效:', oldForm)
+                console.log("数据有效:", oldForm);
                 oldForm &&
                   (form.projectName = oldForm.projectName) &&
                   (form.name = oldForm.name) &&
@@ -820,78 +855,90 @@
                   (form.hot = oldForm.hot) &&
                   (form.info = oldForm.info) &&
                   (form.activityUrl = oldForm.activityUrl) &&
-                  (form.opNum = oldForm.opNum)
+                  (form.opNum = oldForm.opNum);
               } else {
-                console.log('数据已过期或不存在')
+                console.log("数据已过期或不存在");
               }
             } catch (error) {
-              console.error('获取信息失败:', error)
+              console.error("获取信息失败:", error);
             }
-          }
+          };
 
           const handleFileChange = async () => {
             if (!form.id || !form.textUrl || !form.projectName) {
               ElMessage({
-                message: 'Please enter the projectName, id and textUrl.',
-                type: 'warning'
-              })
-              return
+                message: "Please enter the projectName, id and textUrl.",
+                type: "warning",
+              });
+              return;
             }
 
-            uploadLoading.value = true
+            uploadLoading.value = true;
             try {
               // 显示初始提示
               ElMessage({
                 message: `开始上传 ${form.projectName} 文本...`,
-                type: 'info'
-              })
+                type: "info",
+              });
 
-              const url = 'http://localhost:3000/toPythonText'
-              const res = await axios.post(url, form)
+              const url = "http://localhost:3000/toPythonText";
+              const res = await axios.post(url, form);
 
               // 成功提示
-              console.log(`Congrats, ${res.data.area || form.projectName} text have uploaded.`)
+              console.log(
+                `Congrats, ${
+                  res.data.area || form.projectName
+                } text have uploaded.`
+              );
               ElMessage({
                 message: `成功上传 ${form.projectName} 文本 (${form.id})`,
-                type: 'success',
-                duration: 5000
-              })
+                type: "success",
+                duration: 5000,
+              });
             } catch (error) {
-              console.error('上传文本失败:', error)
+              console.error("上传文本失败:", error);
               ElMessage({
-                message: `上传文本失败: ${error.message || '请检查网络连接'}`,
-                type: 'error',
-                duration: 5000
-              })
+                message: `上传文本失败: ${error.message || "请检查网络连接"}`,
+                type: "error",
+                duration: 5000,
+              });
             } finally {
-              uploadLoading.value = false
+              uploadLoading.value = false;
             }
-          }
+          };
 
           const handleInfo = () => {
             const map = {
               Yoho: {
-                test: 'https://activity-h5-test.yoho.media',
-                master: 'https://activity-h5.yoho.media'
+                test: "https://activity-h5-test.yoho.media",
+                master: "https://activity-h5.yoho.media",
               },
               Hiyoo: {
-                test: 'https://activity-h5-test.chatchill.media/activity-vite',
-                master: 'https://activity-h5.chatchill.media/activity-vite'
+                test: "https://activity-h5-test.chatchill.media/activity-vite",
+                master: "https://activity-h5.chatchill.media/activity-vite",
               },
               SoulStar: {
-                test: 'https://activity-h5-test.dopalive.com',
-                master: 'https://activity-h5.dopalive.com'
-              }
-            }
+                test: "https://activity-h5-test.dopalive.com",
+                master: "https://activity-h5.dopalive.com",
+              },
+            };
 
-            const test = `${map[form.projectName].test}/act_v_${form.catalog}_${form.name}`
-            const master = `${map[form.projectName].master}/act_v_${form.catalog}_${form.name}`
+            const test = `${map[form.projectName].test}/act_v_${form.catalog}_${
+              form.name
+            }`;
+            const master = `${map[form.projectName].master}/act_v_${
+              form.catalog
+            }_${form.name}`;
 
-            const opTextLinks = []
-            const opMasterLinks = []
+            const opTextLinks = [];
+            const opMasterLinks = [];
             for (let i = 1; i <= form.opNum; i++) {
-              opTextLinks.push(`${test}_op${form.opNum == 1 ? '' : i}/index.html?lang=&key=`)
-              opMasterLinks.push(`${master}_op${form.opNum == 1 ? '' : i}/index.html?lang=&key=`)
+              opTextLinks.push(
+                `${test}_op${form.opNum == 1 ? "" : i}/index.html?lang=&key=`
+              );
+              opMasterLinks.push(
+                `${master}_op${form.opNum == 1 ? "" : i}/index.html?lang=&key=`
+              );
             }
 
             const text = `🌰活动提测: ${form.url}
@@ -899,97 +946,129 @@ Figma: ${form.figma}
 活动🆔: ${form.id}
 活动链接(测试):
 ${test}/index.html?lang=&key=
-${opTextLinks.join('\n')}
-${form.hot == 'true' ? `${test}_op_hot/index.html?lang=&key=` : '--'}
+${opTextLinks.join("\n")}
+${form.hot == "true" ? `${test}_op_hot/index.html?lang=&key=` : "--"}
 活动链接(正式):
 ${master}/index.html?lang=EG&key=
-${opMasterLinks.join('\n')}
-${form.hot == 'true' ? `${master}_op_hot/index.html?lang=&key=` : '--'}
-前端: ${shuffleArray(['@Stone', '@阿田', '@玄策'])}
-后端: ${shuffleArray(['@孤狼', '@待续', '@紫红'])}
-测试: ${shuffleArray(['@隆多', '@保罗'])}`
+${opMasterLinks.join("\n")}
+${form.hot == "true" ? `${master}_op_hot/index.html?lang=&key=` : "--"}
+前端: ${shuffleArray(["@Stone", "@阿田", "@玄策"])}
+后端: ${shuffleArray(["@孤狼", "@待续", "@紫红"])}
+测试: ${shuffleArray(["@隆多", "@保罗"])}`;
 
-            form.info = text.replace(/--\n/g, '')
-            form.activityUrl = `${master}/index.html?lang=&key=`
-            console.log(form.info)
-          }
+            form.info = text.replace(/--\n/g, "");
+            form.activityUrl = `${master}/index.html?lang=&key=`;
+            console.log(form.info);
+          };
 
           const updateBase = () => {
-            const data = form
-            const url = 'http://localhost:3000/updateBase'
+            const data = form;
+            const url = "http://localhost:3000/updateBase";
             axios.post(url, data).then((res) => {
               ElMessage({
                 message: `success`,
-                type: 'success'
-              })
-            })
-          }
+                type: "success",
+              });
+            });
+          };
+
+          // 下载模板到当前运行目录
+          const downloadTemplate = async () => {
+            downloadLoading.value = true;
+            try {
+              const url = "http://localhost:3000/download-template";
+              const res = await axios.post(url, {
+                projectName: form.projectName,
+              });
+
+              if (res.data.success) {
+                ElMessage({
+                  message: `模板下载成功！位置: ${res.data.targetDir}`,
+                  type: "success",
+                  duration: 5000,
+                });
+              } else {
+                ElMessage({
+                  message: `下载失败: ${res.data.message}`,
+                  type: "error",
+                });
+              }
+            } catch (error) {
+              console.error("下载模板失败:", error);
+              ElMessage({
+                message: `下载失败: ${error.message || "请检查网络连接"}`,
+                type: "error",
+              });
+            } finally {
+              downloadLoading.value = false;
+            }
+          };
 
           // 创建并切换 git 分支的函数
           const createAndSwitchBranch = async () => {
             // 直接使用用户输入的活动名称作为分支名
-            const branchName = form.name
+            const branchName = form.name;
 
-            console.log('Creating and switching to branch:', branchName)
+            console.log("Creating and switching to branch:", branchName);
 
             // 调用后端 API 创建并切换分支
-            const gitUrl = 'http://localhost:3000/git-branch'
+            const gitUrl = "http://localhost:3000/git-branch";
             const gitData = {
               branchName: branchName,
               projectName: form.projectName,
-              branchCheck: form.branchCheck
-            }
+              branchCheck: form.branchCheck,
+            };
 
-            const response = await axios.post(gitUrl, gitData)
+            const response = await axios.post(gitUrl, gitData);
 
             if (response.data.success) {
               ElMessage({
                 message: `Successfully created and switched to branch: ${branchName}`,
-                type: 'success'
-              })
-              return true // 返回成功状态
+                type: "success",
+              });
+              return true; // 返回成功状态
             } else {
               ElMessage({
                 message: `Failed to create branch: ${response.data.message}`,
-                type: 'error'
-              })
-              throw new Error(response.data.message) // 抛出错误，让 Promise.allSettled 捕获
+                type: "error",
+              });
+              throw new Error(response.data.message); // 抛出错误，让 Promise.allSettled 捕获
             }
-          }
+          };
 
           // 创建活动文件的函数
           const createActivityFile = async () => {
-            handleInfo()
-            const data = { ...form }
-            const url = 'http://localhost:3000/submit'
-            data.op = data.op == 'true' ? '1' : '0'
-            data.hot = data.hot == 'true' ? '1' : '0'
+            handleInfo();
+            const data = { ...form };
+            const url = "http://localhost:3000/submit";
+            data.op = data.op == "true" ? "1" : "0";
+            data.hot = data.hot == "true" ? "1" : "0";
 
-            console.log('data', data)
+            console.log("data", data);
 
-            const res = await axios.post(url, data)
-            return res
-          }
+            const res = await axios.post(url, data);
+            return res;
+          };
 
           const onSubmit = async () => {
             if (!form.url) {
               ElMessage({
                 message: `Error, input activity doc.`,
-                type: 'warning'
-              })
-              return
+                type: "warning",
+              });
+              return;
             }
             if (!form.opNum) {
-              form.opNum = 1
+              form.opNum = 1;
             }
-            form.fullscreenLoading = true
+            form.fullscreenLoading = true;
 
             try {
               // 并行执行：分支创建和文件创建同时进行
               // createAndSwitchBranch(),
               // const [branchResult, fileResult] = await Promise.allSettled([
               //   ])
-              createActivityFile()
+              createActivityFile();
 
               // // 处理分支创建结果
               // if (branchResult.status === 'fulfilled') {
@@ -1003,12 +1082,14 @@ ${form.hot == 'true' ? `${master}_op_hot/index.html?lang=&key=` : '--'}
               // }
 
               ElMessage({
-                message: `Congrats, the file has been created.${JSON.stringify(form)}`,
-                type: 'success'
-              })
-              console.log('JSON.stringify(form)', JSON.stringify(form))
+                message: `Congrats, the file has been created.${JSON.stringify(
+                  form
+                )}`,
+                type: "success",
+              });
+              console.log("JSON.stringify(form)", JSON.stringify(form));
               // 使用示例
-              setItemWithExpiry(`create_activity`, form, 1)
+              setItemWithExpiry(`create_activity`, form, 1);
               // 处理文件创建结果
               // if (fileResult.status === 'fulfilled') {
               // } else {
@@ -1019,189 +1100,206 @@ ${form.hot == 'true' ? `${master}_op_hot/index.html?lang=&key=` : '--'}
               //   })
               // }
             } catch (error) {
-              console.error('提交过程中出错:', error)
+              console.error("提交过程中出错:", error);
               ElMessage({
                 message: `提交失败: ${error.message}`,
-                type: 'error'
-              })
+                type: "error",
+              });
             } finally {
-              form.fullscreenLoading = false
+              form.fullscreenLoading = false;
             }
-          }
+          };
 
           function shuffleArray(array) {
-            const newArray = [...array]
+            const newArray = [...array];
             for (let i = newArray.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1))
-              ;[newArray[i], newArray[j]] = [newArray[j], newArray[i]] // 交换位置
+              const j = Math.floor(Math.random() * (i + 1));
+              [newArray[i], newArray[j]] = [newArray[j], newArray[i]]; // 交换位置
             }
-            return newArray
+            return newArray;
           }
 
-          getInfo()
+          getInfo();
 
           // 自执行方法：根据项目名称获取需求文档URL
           const getProjectDocUrl = (() => {
             // 需求文档配置
             const docConfig = [
               {
-                label: 'yoho需求文档',
-                url: 'https://micoworld.feishu.cn/wiki/XfKXwiMAFi7XsRk4vh6cM4mWnNf'
+                label: "yoho需求文档",
+                url: "https://micoworld.feishu.cn/wiki/XfKXwiMAFi7XsRk4vh6cM4mWnNf",
               },
               {
-                label: 'hiyoo需求文档',
-                url: 'https://micoworld.feishu.cn/wiki/LZH8wyvVmi1Q22ktSIdc89FKnAd'
-              }
-            ]
+                label: "hiyoo需求文档",
+                url: "https://micoworld.feishu.cn/wiki/LZH8wyvVmi1Q22ktSIdc89FKnAd",
+              },
+            ];
 
             // 返回获取URL的方法
             return (projectName) => {
               // 将项目名称转换为小写，用于匹配
-              const projectLower = projectName.toLowerCase()
+              const projectLower = projectName.toLowerCase();
 
               // 查找匹配的文档
               const matchedDoc = docConfig.find((doc) => {
-                const docLabel = doc.label.toLowerCase()
+                const docLabel = doc.label.toLowerCase();
                 // 匹配项目名称和"需求文档"关键词（不区分大小写），忽略月份信息
-                return docLabel.includes(projectLower) && docLabel.includes('需求文档')
-              })
+                return (
+                  docLabel.includes(projectLower) &&
+                  docLabel.includes("需求文档")
+                );
+              });
 
-              return matchedDoc ? matchedDoc.url : null
-            }
-          })()
+              return matchedDoc ? matchedDoc.url : null;
+            };
+          })();
 
           // 监听项目名称变化，自动填充文档URL
           watch(
             () => form.projectName,
             (newProjectName) => {
               if (newProjectName) {
-                const docUrl = getProjectDocUrl(newProjectName)
+                const docUrl = getProjectDocUrl(newProjectName);
               }
             },
             { immediate: true }
-          )
+          );
 
           // 打开项目需求文档的方法
           const openProjectDoc = () => {
             if (!form.projectName) {
               ElMessage({
-                message: '请先选择项目名称',
-                type: 'warning'
-              })
-              return
+                message: "请先选择项目名称",
+                type: "warning",
+              });
+              return;
             }
 
-            const docUrl = getProjectDocUrl(form.projectName)
+            const docUrl = getProjectDocUrl(form.projectName);
             if (docUrl) {
               // 在新标签页打开需求文档
-              window.open(docUrl, '_blank')
-              console.log(`在新标签页打开 ${form.projectName} 需求文档:`, docUrl)
+              window.open(docUrl, "_blank");
+              console.log(
+                `在新标签页打开 ${form.projectName} 需求文档:`,
+                docUrl
+              );
             } else {
               ElMessage({
                 message: `未找到 ${form.projectName} 的需求文档`,
-                type: 'warning'
-              })
+                type: "warning",
+              });
             }
-          }
+          };
 
           const handleFileChangeExcel = () => {
             if (!form.id) {
               ElMessage({
-                message: 'Please enter the activity id.',
-                type: 'error'
-              })
-              return
+                message: "Please enter the activity id.",
+                type: "error",
+              });
+              return;
             }
-            excelInput.value?.click()
-          }
+            excelInput.value?.click();
+          };
 
-          const excelInput = ref(null)
+          const excelInput = ref(null);
 
           function excelInputChange(event) {
-            if (event.target.value.toUpperCase().endsWith('XLSX')) {
-              const file = event.target.files[0]
+            if (event.target.value.toUpperCase().endsWith("XLSX")) {
+              const file = event.target.files[0];
               if (file) {
-                const reader = new FileReader()
+                const reader = new FileReader();
                 reader.onload = async function (e) {
-                  const data = new Uint8Array(e.target.result)
-                  const workbook = XLSX.read(data, { type: 'array' })
+                  const data = new Uint8Array(e.target.result);
+                  const workbook = XLSX.read(data, { type: "array" });
 
                   // 假设 Excel 中只有一个表格，取第一个表格
-                  const sheetName = workbook.SheetNames[0]
-                  const sheet = workbook.Sheets[sheetName]
+                  const sheetName = workbook.SheetNames[0];
+                  const sheet = workbook.Sheets[sheetName];
 
-                  const columnData = {}
+                  const columnData = {};
                   // 解析表格中的数据
                   for (const cellAddress in sheet) {
-                    if (cellAddress[0] === '!' || !sheet.hasOwnProperty(cellAddress)) continue
+                    if (
+                      cellAddress[0] === "!" ||
+                      !sheet.hasOwnProperty(cellAddress)
+                    )
+                      continue;
 
-                    const cell = sheet[cellAddress]
-                    const columnName = cellAddress.match(/[A-Z]+/)[0] // 获取列名
-                    const cellValue = cell.v
+                    const cell = sheet[cellAddress];
+                    const columnName = cellAddress.match(/[A-Z]+/)[0]; // 获取列名
+                    const cellValue = cell.v;
 
                     if (!columnData[columnName]) {
-                      columnData[columnName] = []
+                      columnData[columnName] = [];
                     }
 
-                    columnData[columnName].push({ content: cellValue, index: cellAddress.slice(1) })
+                    columnData[columnName].push({
+                      content: cellValue,
+                      index: cellAddress.slice(1),
+                    });
                   }
 
                   for (const columnName in columnData) {
-                    const columnValues = columnData[columnName]
-                    const _area = columnValues[0].content.replace(/[\u4e00-\u9fa5\s]/g, '')
-                    console.log(_area, '_area')
+                    const columnValues = columnData[columnName];
+                    const _area = columnValues[0].content.replace(
+                      /[\u4e00-\u9fa5\s]/g,
+                      ""
+                    );
+                    console.log(_area, "_area");
                     const data = {
                       activityId: form.id,
-                      area: ['Arabic', 'XM', 'EG'].includes(_area)
-                        ? 'ME'
-                        : ['Chinese', 'CN'].includes(_area)
-                        ? 'TW'
+                      area: ["Arabic", "XM", "EG"].includes(_area)
+                        ? "ME"
+                        : ["Chinese", "CN"].includes(_area)
+                        ? "TW"
                         : _area,
                       content: `{"list":${JSON.stringify(columnValues)}}`,
                       count: columnValues.length,
-                      operator: 'stone@micous.com'
-                    }
+                      operator: "stone@micous.com",
+                    };
 
-                    await upload(data)
+                    await upload(data);
                   }
 
                   // 清空 input 的 value，确保下次选择相同文件时也能触发 change 事件
-                  event.target.value = ''
-                }
-                reader.readAsArrayBuffer(file)
+                  event.target.value = "";
+                };
+                reader.readAsArrayBuffer(file);
               }
             }
           }
 
           const upload = async (data) => {
-            if (['ENGLISH', 'NOTE', 'EN', 'EVENTTITLE'].includes(data.area)) return
+            if (["ENGLISH", "NOTE", "EN", "EVENTTITLE"].includes(data.area))
+              return;
 
             // form.name 中首字母小写并去除空格
             data.name = data.name
-              ?.replace(/\s+/g, '')
-              ?.replace(/^[A-Z]/, (match) => match.toLowerCase())
+              ?.replace(/\s+/g, "")
+              ?.replace(/^[A-Z]/, (match) => match.toLowerCase());
 
             const url =
-              form.projectName == 'Hiyoo'
-                ? 'http://localhost:3000/sendHiyoo'
-                : 'http://localhost:3000/send'
+              form.projectName == "Hiyoo"
+                ? "http://localhost:3000/sendHiyoo"
+                : "http://localhost:3000/send";
 
             await axios.post(url, data).then((res) => {
               if (res.data.data.code == 1) {
-                console.log(`Congrats, ${data.area} text have uploaded.`)
+                console.log(`Congrats, ${data.area} text have uploaded.`);
                 ElMessage({
                   message: `Congrats, ${data.area} text have uploaded.`,
-                  type: 'success'
-                })
+                  type: "success",
+                });
               } else {
-                console.log(`Error, ${data.area} text hava error.`)
+                console.log(`Error, ${data.area} text hava error.`);
                 ElMessage({
                   message: `Error, ${data.area} text hava error.`,
-                  type: 'warning'
-                })
+                  type: "warning",
+                });
               }
-            })
-          }
+            });
+          };
 
           return {
             form,
@@ -1212,16 +1310,18 @@ ${form.hot == 'true' ? `${master}_op_hot/index.html?lang=&key=` : '--'}
             openProjectDoc,
             updateBase,
             uploadLoading,
+            downloadLoading,
+            downloadTemplate,
             upload,
             excelInputChange,
-            excelInput
-          }
-        }
-      }
+            excelInput,
+          };
+        },
+      };
 
-      const app = createApp(App)
-      app.use(ElementPlus)
-      app.mount('#app')
+      const app = createApp(App);
+      app.use(ElementPlus);
+      app.mount("#app");
     </script>
   </body>
 </html>
