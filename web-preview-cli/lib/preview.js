@@ -5,7 +5,7 @@ const chalk = require("chalk");
 const open = require("open");
 const https = require("https");
 const http = require("http");
-const { createServer, findIndexFile, CREATE_PAGE_CACHE_FILE } = require("./server");
+const { createServer, findIndexFile, CREATE_PAGE_CACHE_FILE, waitForCache } = require("./server");
 
 // 临时目录名称
 const TEMP_DIR_NAME = ".web-preview-temp";
@@ -263,18 +263,23 @@ async function preview(options) {
 async function previewUrl(options) {
   const { url, port = 3000, autoOpen = true } = options;
 
-  // 临时目录
-  const tempDir = path.join(process.cwd(), TEMP_DIR_NAME);
   let server = null;
+  let usedTempDir = false;
+  const tempDir = path.join(process.cwd(), TEMP_DIR_NAME);
 
   // 清理函数
   const cleanup = () => {
-    console.log(chalk.yellow("\n\n🧹 正在清理临时文件..."));
     if (server) {
       server.close();
     }
-    cleanupTempDir(tempDir);
-    console.log(chalk.green("✓ 临时文件已清理"));
+    // 只有使用了临时目录才需要清理
+    if (usedTempDir) {
+      console.log(chalk.yellow("\n\n🧹 正在清理临时文件..."));
+      cleanupTempDir(tempDir);
+      console.log(chalk.green("✓ 临时文件已清理"));
+    } else {
+      console.log(chalk.gray("\n\n👋 再见"));
+    }
   };
 
   // 注册退出处理
@@ -287,25 +292,32 @@ async function previewUrl(options) {
   process.on("SIGTERM", handleExit);
 
   try {
-    // 清理并创建临时目录
-    cleanupTempDir(tempDir);
-    fs.mkdirSync(tempDir, { recursive: true });
+    // 等待缓存准备完成（如果正在缓存的话）
+    await waitForCache();
 
-    // 获取文件名
-    const fileName = getFileNameFromUrl(url);
-    const destPath = path.join(tempDir, fileName);
+    // 重新检查缓存文件是否存在（等待后可能已经准备好了）
+    const cacheFileExists = CREATE_PAGE_CACHE_FILE && 
+                            fs.existsSync(CREATE_PAGE_CACHE_FILE) && 
+                            url.includes("create-page/index.html");
 
-    // 检查是否有缓存的 HTML 文件
-    if (CREATE_PAGE_CACHE_FILE && fs.existsSync(CREATE_PAGE_CACHE_FILE) && url.includes("create-page/index.html")) {
-      // 从缓存复制文件
-      fs.copyFileSync(CREATE_PAGE_CACHE_FILE, destPath);
+    if (cacheFileExists) {
+      // 使用缓存模式：直接从缓存目录读取 HTML，不创建临时文件
+      server = await createServer(process.cwd(), port, { 
+        indexFilePath: CREATE_PAGE_CACHE_FILE 
+      });
     } else {
-      // 下载文件
-      await showLoading("正在下载 HTML 文件...", downloadFile(url, destPath));
-    }
+      // 非缓存模式：下载到临时目录
+      usedTempDir = true;
+      cleanupTempDir(tempDir);
+      fs.mkdirSync(tempDir, { recursive: true });
 
-    // 启动服务器
-    server = await createServer(tempDir, port);
+      const fileName = getFileNameFromUrl(url);
+      const destPath = path.join(tempDir, fileName);
+
+      await showLoading("正在下载 HTML 文件...", downloadFile(url, destPath));
+
+      server = await createServer(tempDir, port);
+    }
 
     const localUrl = `http://localhost:${port}`;
 

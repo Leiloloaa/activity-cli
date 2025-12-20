@@ -694,8 +694,8 @@ async function handleDownloadTemplate(req, res) {
 
       // 优先从缓存复制，否则从 GitHub 下载
       const activityCachePath = getCachedTemplatePath(templateDir, "activity");
-      if (!cacheAvailable || !copyFromCache(activityCachePath, targetDir)) {
-        console.log(chalk.gray("  从 GitHub 下载..."));
+      const usedCache = cacheAvailable && copyFromCache(activityCachePath, targetDir);
+      if (!usedCache) {
         await downloadGitHubDir(remotePath, targetDir);
       }
 
@@ -727,7 +727,8 @@ async function handleDownloadTemplate(req, res) {
         }
 
         const opCachePath = getCachedTemplatePath(templateDir, "activity_op");
-        if (!cacheAvailable || !copyFromCache(opCachePath, firstOpTargetDir)) {
+        const usedOpCache = cacheAvailable && copyFromCache(opCachePath, firstOpTargetDir);
+        if (!usedOpCache) {
           await downloadGitHubDir(remoteOpPath, firstOpTargetDir);
         }
 
@@ -793,10 +794,8 @@ async function handleDownloadTemplate(req, res) {
             templateDir,
             "activity_op_hot"
           );
-          if (
-            !cacheAvailable ||
-            !copyFromCache(hotCachePath, firstHotTargetDir)
-          ) {
+          const usedHotCache = cacheAvailable && copyFromCache(hotCachePath, firstHotTargetDir);
+          if (!usedHotCache) {
             await downloadGitHubDir(remoteHotPath, firstHotTargetDir);
           }
 
@@ -875,7 +874,9 @@ async function handleDownloadTemplate(req, res) {
  * @param {number} port - 服务器端口
  * @returns {Promise<http.Server>}
  */
-function createServer(rootDir, port) {
+function createServer(rootDir, port, options = {}) {
+  const { indexFilePath } = options; // 可选：直接指定 index 文件路径（用于缓存模式）
+
   return new Promise((resolve, reject) => {
     const server = http.createServer(async (req, res) => {
       // 解析请求 URL
@@ -889,6 +890,24 @@ function createServer(rootDir, port) {
 
       // 处理根路径
       if (urlPath === "/") {
+        // 如果指定了 index 文件路径（缓存模式），直接读取该文件
+        if (indexFilePath && fs.existsSync(indexFilePath)) {
+          const mimeType = getMimeType(indexFilePath);
+          fs.readFile(indexFilePath, (err, content) => {
+            if (err) {
+              res.writeHead(500);
+              res.end("Internal Server Error");
+              return;
+            }
+            res.writeHead(200, {
+              "Content-Type": mimeType,
+              "Cache-Control": "no-cache",
+            });
+            res.end(content);
+          });
+          return;
+        }
+
         const indexFile = findIndexFile(rootDir);
         if (indexFile) {
           urlPath = "/" + indexFile;
@@ -1132,6 +1151,7 @@ module.exports = {
   preCacheTemplates,
   clearCache,
   getCacheInfo,
+  waitForCache,
   CACHE_DIR,
   VERSION_FILE,
   CREATE_PAGE_CACHE_FILE,
