@@ -98,17 +98,19 @@ program
 // 创建活动命令 - 下载远程 HTML 文件并运行
 program
   .command("create")
-  .description("启动 Activity 创建工具（从 GitHub 下载 HTML 并运行）")
+  .description("启动 Activity 创建工具")
   .option("-u, --url <url>", "HTML 文件的 URL (默认: activity-cli 创建页面)")
   .option("-p, --port <port>", "服务器端口 (默认: 3000)", "3000")
   .option("--no-open", "不自动打开浏览器")
   .action(async (options) => {
+    const { preCacheTemplates } = require("../lib/server");
     try {
       const url = options.url || ACTIVITY_CREATE_URL;
 
       console.log(chalk.cyan("\n📦 Activity 创建工具"));
-      console.log(chalk.gray("将从远程下载 HTML 文件到本地临时目录运行"));
-      console.log(chalk.gray("退出时会自动清理临时文件\n"));
+
+      // 预缓存模板和 HTML 文件
+      await preCacheTemplates();
 
       await previewUrl({
         url,

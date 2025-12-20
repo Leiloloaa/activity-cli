@@ -15,6 +15,10 @@ const VERSION_FILE = path.join(CACHE_DIR, ".version");
 const TEMPLATE_PROJECTS = ["yoho", "hiyoo", "soulstar", "dramebit"];
 const TEMPLATE_TYPES = ["activity", "activity_op", "activity_op_hot"];
 
+// 需要缓存的 HTML 文件
+const CREATE_PAGE_HTML = "create-page/index.html";
+const CREATE_PAGE_CACHE_FILE = path.join(CACHE_DIR, "create-page.html");
+
 // 缓存状态
 let cacheReady = false;
 let cachePromise = null;
@@ -275,26 +279,27 @@ async function preCacheTemplates(forceRefresh = false) {
   if (cachePromise && !forceRefresh) return cachePromise;
 
   cachePromise = (async () => {
-    console.log(chalk.cyan("\n🚀 检查模板缓存..."));
-
     // 检查版本是否有效
     const versionValid = await checkCacheVersion();
     const needRefresh = forceRefresh || !versionValid;
 
-    // 如果版本有效且缓存存在，直接返回
-    if (!needRefresh) {
-      const allCached = TEMPLATE_PROJECTS.every((p) =>
-        isCacheValid(path.join(CACHE_DIR, p))
-      );
-      if (allCached) {
-        console.log(chalk.green("✓ 模板缓存已是最新"));
-        cacheReady = true;
-        return;
-      }
+    // 检查缓存状态
+    const allTemplatesCached = TEMPLATE_PROJECTS.every((p) =>
+      isCacheValid(path.join(CACHE_DIR, p))
+    );
+    const htmlCached = fs.existsSync(CREATE_PAGE_CACHE_FILE);
+
+    // 如果版本有效且缓存都存在，直接返回
+    if (!needRefresh && allTemplatesCached && htmlCached) {
+      console.log(chalk.green("✓ 创建页缓存已准备好"));
+      console.log(chalk.green("✓ 模板缓存已准备好"));
+      cacheReady = true;
+      return;
     }
 
     // 需要刷新缓存
     if (needRefresh && fs.existsSync(CACHE_DIR)) {
+      console.log(chalk.yellow("⚠️  检测到远程有变更，重新下载缓存..."));
       // 清除旧缓存
       for (const project of TEMPLATE_PROJECTS) {
         const projectDir = path.join(CACHE_DIR, project);
@@ -302,17 +307,19 @@ async function preCacheTemplates(forceRefresh = false) {
           fs.rmSync(projectDir, { recursive: true, force: true });
         }
       }
+      // 删除缓存的 HTML 文件
+      if (fs.existsSync(CREATE_PAGE_CACHE_FILE)) {
+        fs.unlinkSync(CREATE_PAGE_CACHE_FILE);
+      }
     }
-
-    console.log(chalk.cyan("  下载模板中..."));
 
     // 确保缓存目录存在
     if (!fs.existsSync(CACHE_DIR)) {
       fs.mkdirSync(CACHE_DIR, { recursive: true });
     }
 
-    // 并行下载所有项目的模板
-    const downloadTasks = [];
+    // 收集需要下载的模板任务
+    const templateTasks = [];
 
     for (const project of TEMPLATE_PROJECTS) {
       const projectCacheDir = path.join(CACHE_DIR, project);
@@ -323,32 +330,96 @@ async function preCacheTemplates(forceRefresh = false) {
       }
 
       for (const templateType of TEMPLATE_TYPES) {
-        const remotePath = `template/${project}/${templateType}`;
         const localPath = path.join(projectCacheDir, templateType);
-
-        downloadTasks.push(
-          downloadGitHubDir(remotePath, localPath).catch((err) => {
-            // 忽略不存在的模板目录
-          })
-        );
+        // 只添加不存在的模板
+        if (!fs.existsSync(localPath)) {
+          const remotePath = `template/${project}/${templateType}`;
+          templateTasks.push({
+            project,
+            templateType,
+            remotePath,
+            localPath,
+          });
+        }
       }
     }
 
-    if (downloadTasks.length > 0) {
-      await Promise.all(downloadTasks);
+    // 检查 HTML 文件是否需要下载
+    const needDownloadHtml = !fs.existsSync(CREATE_PAGE_CACHE_FILE);
 
-      // 保存版本信息
-      if (remoteVersion) {
-        saveLocalVersion(remoteVersion);
-      } else {
-        // 如果之前没获取到版本，现在获取并保存
-        const version = await fetchRemoteVersion();
-        if (version) {
-          saveLocalVersion(version);
+    // 下载创建页缓存
+    if (needDownloadHtml) {
+      process.stdout.write("  下载创建页缓存...");
+      try {
+        const htmlUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${CREATE_PAGE_HTML}`;
+        await downloadGitHubFile(htmlUrl, CREATE_PAGE_CACHE_FILE);
+        process.stdout.write("\r" + " ".repeat(30) + "\r");
+        console.log(chalk.green("✓ 创建页缓存已准备好"));
+      } catch {
+        process.stdout.write("\r" + " ".repeat(30) + "\r");
+        console.log(chalk.yellow("⚠️  创建页缓存下载失败"));
+      }
+    } else {
+      console.log(chalk.green("✓ 创建页缓存已准备好"));
+    }
+
+    // 下载模板缓存
+    if (templateTasks.length > 0) {
+      let completed = 0;
+      const totalTasks = templateTasks.length;
+
+      // 显示进度
+      const showProgress = () => {
+        process.stdout.write(
+          `\r  下载模板缓存... (${completed}/${totalTasks})`
+        );
+      };
+
+      showProgress();
+
+      // 并行下载，但限制并发数为 4
+      const concurrency = 4;
+      const executing = new Set();
+
+      // 下载模板目录
+      for (const task of templateTasks) {
+        const promise = (async () => {
+          try {
+            await downloadGitHubDir(task.remotePath, task.localPath);
+          } catch {
+            // 模板不存在时静默忽略
+          }
+          completed++;
+          showProgress();
+        })();
+
+        executing.add(promise);
+        promise.finally(() => executing.delete(promise));
+
+        if (executing.size >= concurrency) {
+          await Promise.race(executing);
         }
       }
 
-      console.log(chalk.green("✓ 模板预缓存完成"));
+      // 等待所有任务完成
+      await Promise.all(executing);
+
+      // 清除进度行并换行
+      process.stdout.write("\r" + " ".repeat(40) + "\r");
+
+      console.log(chalk.green("✓ 模板缓存已准备好"));
+    } else {
+      console.log(chalk.green("✓ 模板缓存已准备好"));
+    }
+
+    // 保存版本信息
+    if (remoteVersion) {
+      saveLocalVersion(remoteVersion);
+    } else {
+      const version = await fetchRemoteVersion();
+      if (version) {
+        saveLocalVersion(version);
+      }
     }
 
     cacheReady = true;
@@ -772,15 +843,15 @@ async function handleDownloadTemplate(req, res) {
         }
       }
 
-      console.log(
-        chalk.green(`\n✓ 模板下载完成! 共创建 ${createdDirs.length} 个目录\n`)
-      );
+      console.log(chalk.green(`\n✓ ${data.projectName} 活动创建完成`));
+      console.log(chalk.cyan(`  活动名称: ${data.name}`));
+      console.log(chalk.cyan(`  活动 ID: ${data.id || "未设置"}\n`));
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
           success: true,
-          message: `模板已下载到: ${catalogDir}`,
+          message: `${data.projectName} 活动创建完成`,
           targetDir: catalogDir,
           createdDirs,
         })
@@ -1063,4 +1134,5 @@ module.exports = {
   getCacheInfo,
   CACHE_DIR,
   VERSION_FILE,
+  CREATE_PAGE_CACHE_FILE,
 };

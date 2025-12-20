@@ -4,20 +4,17 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Activity Auto Create</title>
+    <title>Activity Template Creator</title>
     <link
       href="https://cn.vitejs.dev/logo-with-shadow.png"
       rel="shortcut icon"
       type="image/x-icon"
     />
-    <!-- 导入样式 -->
     <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
-    <!-- 导入库 -->
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.45/dist/vue.global.js"></script>
     <script src="//unpkg.com/element-plus"></script>
     <script src="https://unpkg.com/dayjs/dayjs.min.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <style>
       * {
         margin: 0;
@@ -26,236 +23,97 @@
       }
 
       body {
-        background: white;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
         min-height: 100vh;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .warp {
-        width: 600px;
-        margin: 0 auto;
-        padding: 20px 0;
-        animation: fadeInUp 0.8s ease-out;
+        width: 800px;
+        padding: 20px;
+        padding-top: 0px;
+        animation: fadeInUp 0.6s ease-out;
       }
 
       .title {
         width: 100%;
-        height: 80px;
-        line-height: 80px;
+        height: 70px;
+        line-height: 70px;
         text-align: center;
-        font-size: 32px;
+        font-size: 28px;
         font-weight: 700;
         color: white;
         margin-bottom: 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
         border-radius: 16px;
-        border: none;
-        animation: slideInDown 0.6s ease-out;
-        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        position: relative;
-        overflow: hidden;
       }
 
-      .title::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.2),
-          transparent
-        );
-        transition: left 0.8s;
-      }
-
-      .title:hover::before {
-        left: 100%;
-      }
-
-      .action-buttons {
-        margin-top: 24px;
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        animation: fadeInUp 1s ease-out 0.3s both;
-      }
-
-      .upload-tips {
-        font-size: 12px;
-        color: #909399;
-        padding: 5px 0;
-        line-height: 1.4;
-      }
-
-      /* 表单容器样式 */
       .form-container {
         background: white;
-        border-radius: 20px;
+        border-radius: 16px;
         padding: 24px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
         border: 1px solid #e4e7ed;
-        animation: fadeInUp 0.8s ease-out 0.2s both;
       }
 
-      /* 表单项样式优化 */
       .el-form-item {
-        margin-bottom: 16px;
-        transition: all 0.3s ease;
-      }
-
-      .el-form-item:hover {
-        transform: translateX(4px);
+        margin-bottom: 26px;
       }
 
       .el-form-item__label {
         font-weight: 600 !important;
         color: #2c3e50 !important;
-        font-size: 14px !important;
       }
 
-      /* 输入框样式优化 - 解决双层边框问题 */
       .el-input {
         border-radius: 8px !important;
-        border: 1px solid #dcdfe6 !important;
-        transition: all 0.3s ease !important;
-        background: white !important;
       }
 
-      .el-input:hover {
-        border-color: #c0c4cc !important;
-      }
-
-      .el-input.is-focus {
-        border-color: #409eff !important;
-        box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1) !important;
-      }
-
-      .el-input__inner {
-        border: none !important;
-        background: transparent !important;
-        padding: 8px 12px !important;
-        font-size: 14px !important;
-        height: 36px !important;
-        line-height: 1.5 !important;
-        border-radius: 0 !important;
-      }
-
-      .el-input__inner:focus {
-        border: none !important;
-        box-shadow: none !important;
-        outline: none !important;
-      }
-
-      .el-input__inner:hover {
-        border: none !important;
-      }
-
-      /* 单选按钮样式优化 - 解决双层边框问题 */
       .el-radio-button {
         margin-right: 8px !important;
       }
 
       .el-radio-button__inner {
         border-radius: 6px !important;
-        border: 1px solid #dcdfe6 !important;
-        transition: all 0.3s ease !important;
-        padding: 6px 12px !important;
-        font-weight: 500 !important;
-        height: 36px !important;
-        line-height: 1.5 !important;
-        background: white !important;
-        color: #606266 !important;
-      }
-
-      .el-radio-button__inner:hover {
-        transform: none;
-        border-color: #c0c4cc !important;
-        color: #409eff !important;
       }
 
       .el-radio-button__original-radio:checked + .el-radio-button__inner {
         background: linear-gradient(135deg, #409eff, #36a3f7) !important;
         border-color: #409eff !important;
-        color: white !important;
-        box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3) !important;
       }
 
-      /* 单选按钮组样式 */
-      .el-radio-group {
-        display: flex !important;
-        gap: 8px !important;
-      }
-
-      .el-radio-button__original-radio:checked + .el-radio-button__inner {
-        background: linear-gradient(135deg, #409eff, #36a3f7) !important;
-        border-color: #409eff !important;
-        color: white !important;
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-      }
-
-      .el-button {
-        border-radius: 8px !important;
-        padding: 8px 16px !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-        border: none !important;
-        position: relative !important;
-        overflow: hidden !important;
-        height: 36px !important;
-        font-size: 14px !important;
-      }
-
-      .el-button::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.2),
-          transparent
-        );
-        transition: left 0.5s;
-      }
-
-      .el-button:hover::before {
-        left: 100%;
-      }
-
-      .el-button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-
-      .el-button--primary {
-        background: linear-gradient(135deg, #409eff, #36a3f7) !important;
-        box-shadow: 0 4px 15px rgba(64, 158, 255, 0.3) !important;
+      .action-buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
       }
 
       .el-button--success {
         background: linear-gradient(135deg, #67c23a, #85ce61) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 12px 32px !important;
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        height: auto !important;
         box-shadow: 0 4px 15px rgba(103, 194, 58, 0.3) !important;
       }
 
-      .el-button--warning {
-        background: linear-gradient(135deg, #e6a23c, #f0c78a) !important;
-        box-shadow: 0 4px 15px rgba(230, 162, 60, 0.3) !important;
+      .el-button--success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(103, 194, 58, 0.4) !important;
       }
 
-      /* 动画定义 */
       @keyframes fadeInUp {
         from {
           opacity: 0;
-          transform: translateY(30px);
+          transform: translateY(20px);
         }
         to {
           opacity: 1;
@@ -263,292 +121,22 @@
         }
       }
 
-      @keyframes slideInDown {
-        from {
-          opacity: 0;
-          transform: translateY(-30px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @keyframes pulse {
-        0%,
-        100% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.05);
-        }
-      }
-
-      @keyframes slideInRight {
-        from {
-          opacity: 0;
-          transform: translateX(30px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-
-      /* 加载动画 */
-      .loading-pulse {
-        animation: pulse 2s infinite;
-      }
-
-      /* 悬浮工作流程样式 */
-      .floating-workflow {
-        position: fixed;
-        top: 80px;
-        right: 60px;
-        width: 380px;
-        max-height: calc(100vh - 100px);
-        overflow-y: auto;
-        z-index: 9999;
-        animation: slideInRight 0.8s ease-out 0.5s both;
-      }
-
-      .workflow-panel {
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        border: 1px solid #e4e7ed;
-        overflow: hidden;
-      }
-
-      .workflow-header {
-        background: linear-gradient(135deg, #409eff, #36a3f7);
-        padding: 12px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        font-weight: 600;
-        color: white;
-        font-size: 13px;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      }
-
-      .workflow-content {
-        padding: 16px;
-      }
-
-      .workflow-steps {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .step {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 12px;
-        background: #f8f9fa;
-        border-radius: 10px;
-        border: 1px solid #e4e7ed;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .step::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(135deg, #409eff, #36a3f7);
-        border-radius: 0 2px 2px 0;
-      }
-
-      .step:hover {
-        transform: translateX(8px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-        border-color: #409eff;
-        background: white;
-      }
-
-      .step-number {
-        width: 28px;
-        height: 28px;
-        background: linear-gradient(135deg, #409eff, #36a3f7);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 12px;
-        flex-shrink: 0;
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-        transition: all 0.3s ease;
-      }
-
-      .step:hover .step-number {
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
-      }
-
-      .step-content {
-        flex: 1;
-      }
-
-      .step-title {
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 4px;
-        font-size: 13px;
-        transition: color 0.3s ease;
-      }
-
-      .step:hover .step-title {
-        color: #409eff;
-      }
-
-      .step-desc {
-        color: #606266;
-        font-size: 11px;
-        line-height: 1.4;
-      }
-
-      .workflow-note {
-        margin-top: 16px;
-        padding: 12px;
-        background: #fff7e6;
-        border: 1px solid #ffd591;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: #d46b08;
-        font-size: 11px;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(212, 107, 8, 0.1);
-        transition: all 0.3s ease;
-      }
-
-      .workflow-note:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(212, 107, 8, 0.15);
-        background: white;
-      }
-
-      /* 响应式设计 */
-      @media (max-width: 1400px) {
-        .floating-workflow {
-          right: 40px;
-          width: 340px;
-        }
-      }
-
-      @media (max-width: 1200px) {
-        .floating-workflow {
-          display: none;
-        }
-        .warp {
-          margin-right: auto;
-        }
-      }
-
-      @media (max-width: 768px) {
+      @media (max-width: 600px) {
         .warp {
           width: 95%;
-          padding: 20px 0;
         }
-
         .title {
-          font-size: 28px;
-          height: 80px;
-          line-height: 80px;
-          margin-bottom: 20px;
+          font-size: 22px;
+          height: 60px;
+          line-height: 60px;
         }
-
-        .form-container {
-          padding: 20px;
-        }
-
-        .action-buttons {
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .el-button {
-          width: 100%;
-          max-width: 300px;
-        }
-
-        .floating-workflow {
-          display: none;
-        }
-      }
-
-      /* 文案上传说明样式 */
-      .workflow-upload {
-        margin-top: 16px;
-        padding: 12px;
-        background: #f0f9ff;
-        border: 1px solid #bae6fd;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-        transition: all 0.3s ease;
-      }
-
-      .workflow-upload:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
-        background: white;
-      }
-
-      .upload-title {
-        font-weight: 700;
-        color: #1e40af;
-        margin-bottom: 10px;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .upload-methods {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .upload-method {
-        padding: 10px;
-        background: white;
-        border-radius: 8px;
-        border: 1px solid #e0e7ff;
-        transition: all 0.3s ease;
-      }
-
-      .upload-method:hover {
-        border-color: #3b82f6;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-      }
-
-      .method-title {
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 4px;
-        font-size: 11px;
-      }
-
-      .method-desc {
-        color: #6b7280;
-        font-size: 10px;
-        line-height: 1.3;
       }
     </style>
   </head>
   <body>
     <div id="app">
       <div class="warp">
-        <div class="title">Activity Auto Create Form</div>
+        <div class="title">Activity Template Creator</div>
         <div class="form-container">
           <el-form :model="form" label-width="140px">
             <el-form-item label="Project Name">
@@ -566,196 +154,67 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="Activity catalog">
-              <el-input v-model="form.catalog" />
+              <el-input v-model="form.catalog" placeholder="e.g. 202412" />
             </el-form-item>
             <el-form-item label="Activity Name">
-              <el-input v-model="form.name" />
+              <el-input v-model="form.name" placeholder="活动名称（必填）" />
             </el-form-item>
-            <el-form-item label="Activity id">
-              <el-input v-model="form.id" />
+            <el-form-item label="Activity ID">
+              <el-input v-model="form.id" placeholder="活动 ID" />
             </el-form-item>
-            <el-form-item
-              label="Document url"
-              style="display: flex; align-items: center"
-            >
-              <div style="width: 225px; margin-right: 10px">
-                <el-input v-model="form.url" placeholder="请输入需求文档链接" />
-              </div>
-              <el-button type="primary" @click="openProjectDoc"
-                >✈️✈️✈️ 需求文档</el-button
-              >
+            <el-form-item label="Document URL">
+              <el-input v-model="form.url" placeholder="需求文档链接" />
             </el-form-item>
-            <el-form-item
-              label="Upload Text"
-              v-if="form.projectName != 'SoulStar'"
-            >
-              <el-radio-group v-model="form.uploadType">
-                <el-radio value="text">文案链接上传</el-radio>
-                <el-radio value="excel">本地 Excel 上传</el-radio>
-              </el-radio-group>
+            <el-form-item label="Figma URL">
+              <el-input v-model="form.figma" placeholder="设计稿链接" />
             </el-form-item>
-            <el-form-item
-              label=""
-              v-if="form.projectName != 'SoulStar' && form.uploadType === 'text'"
-            >
+            <el-form-item label="Background">
+              <el-input v-model="form.bgc" placeholder="背景色，如 #ffffff" />
+            </el-form-item>
+            <el-form-item label="Swiper OP">
               <div style="display: flex; align-items: center; gap: 10px">
-                <div style="width: 225px">
-                  <el-input
-                    v-model="form.textUrl"
-                    placeholder="请输入文案链接"
-                  />
-                </div>
-                <el-button
-                  type="primary"
-                  @click="handleFileChange"
-                  :loading="uploadLoading"
-                  :disabled="!form.id || !form.textUrl"
-                  v-loading.fullscreen.lock="form.fullscreenLoadingToText"
-                >
-                  {{ uploadLoading ? '上传中...' : `上传` }}
-                </el-button>
+                <el-radio-group v-model="form.op">
+                  <el-radio-button label="true"></el-radio-button>
+                  <el-radio-button label="false"></el-radio-button>
+                </el-radio-group>
+                <el-input
+                  v-model="form.opNum"
+                  style="width: 120px"
+                  placeholder="数量"
+                />
               </div>
             </el-form-item>
-            <el-form-item
-              label=""
-              v-if="form.projectName != 'SoulStar' && form.uploadType === 'excel'"
-            >
-              <el-button type="success" @click="handleFileChangeExcel"
-                >Excel 表格上传</el-button
+            <el-form-item label="Hot Banner">
+              <div style="display: flex; align-items: center; gap: 10px">
+                <el-radio-group v-model="form.hot">
+                  <el-radio-button label="true"></el-radio-button>
+                  <el-radio-button label="false"></el-radio-button>
+                </el-radio-group>
+                <el-input
+                  v-model="form.hotNum"
+                  style="width: 120px"
+                  placeholder="数量"
+                />
+              </div>
+            </el-form-item>
+            <div class="action-buttons">
+              <el-button
+                type="success"
+                @click="downloadTemplate"
+                v-loading.fullscreen.lock="loading"
               >
-            </el-form-item>
-            <el-form-item label="Activity Figma">
-              <el-input v-model="form.figma" />
-            </el-form-item>
-            <el-form-item label="Background-color">
-              <el-input v-model="form.bgc" />
-            </el-form-item>
-            <el-form-item label="Swiper op" style="display: flex">
-              <el-radio-group v-model="form.op">
-                <el-radio-button label="true"></el-radio-button>
-                <el-radio-button label="false"></el-radio-button>
-              </el-radio-group>
-              <el-input
-                v-model="form.opNum"
-                style="width: 225px; margin-left: 10px"
-                placeholder="swiper op num, default 1"
-              />
-            </el-form-item>
-            <el-form-item label="Hot banner" style="display: flex">
-              <el-radio-group v-model="form.hot">
-                <el-radio-button label="true"></el-radio-button>
-                <el-radio-button label="false"></el-radio-button>
-              </el-radio-group>
-              <el-input
-                v-model="form.hotNum"
-                style="width: 225px; margin-left: 10px"
-                placeholder="hot num, default 1"
-              />
-            </el-form-item>
+                Create Template
+              </el-button>
+            </div>
           </el-form>
         </div>
 
-        <div class="action-buttons">
-          <el-button
-            type="primary"
-            @click="onSubmit"
-            v-loading.fullscreen.lock="form.fullscreenLoading"
-          >
-            Create {{ form.projectName }} Activity
-          </el-button>
-
-          <el-button
-            type="success"
-            @click="downloadTemplate"
-            v-loading.fullscreen.lock="downloadLoading"
-          >
-            Down Template
-          </el-button>
-        </div>
-      </div>
-      <!-- 名单上传 -->
-      <input
-        style="display: none"
-        type="file"
-        ref="excelInput"
-        @change="excelInputChange($event)"
-      />
-    </div>
-
-    <!-- 悬浮工作流程说明 -->
-    <div class="floating-workflow">
-      <div class="workflow-panel">
-        <div class="workflow-header">
-          <span>📋 工作流程说明</span>
-        </div>
-        <div class="workflow-content">
-          <div class="workflow-steps">
-            <div class="step">
-              <div class="step-number">1</div>
-              <div class="step-content">
-                <div class="step-title">创建 Git 分支</div>
-                <div class="step-desc">
-                  自动创建并切换到以活动名称命名的分支（如：testCreateBranch25）
-                </div>
-              </div>
-            </div>
-            <div class="step">
-              <div class="step-number">2</div>
-              <div class="step-content">
-                <div class="step-title">生成活动信息</div>
-                <div class="step-desc">
-                  根据填写的信息生成活动链接、测试信息等
-                </div>
-              </div>
-            </div>
-            <div class="step">
-              <div class="step-number">3</div>
-              <div class="step-content">
-                <div class="step-title">执行 Python 脚本</div>
-                <div class="step-desc">
-                  调用后端脚本获取活动时间、地区信息等
-                </div>
-              </div>
-            </div>
-            <div class="step">
-              <div class="step-number">4</div>
-              <div class="step-content">
-                <div class="step-title">创建活动文件</div>
-                <div class="step-desc">在对应目录下创建完整的活动页面文件</div>
-              </div>
-            </div>
-          </div>
-          <div class="workflow-note">
-            <span>⚠️ 注意：分支创建和文件创建将并行执行，以提高效率</span>
-          </div>
-          <div class="workflow-upload">
-            <div class="upload-title">📝 文案上传方式</div>
-            <div class="upload-methods">
-              <div class="upload-method">
-                <div class="method-title">方式一：输入文档文案链接上传</div>
-                <div class="method-desc">
-                  在"Upload
-                  text1"输入框中填入文档文案链链接，点击"链接文案上传"按钮进行上传；（使用
-                  python 脚本上传）
-                </div>
-              </div>
-              <div class="upload-method">
-                <div class="method-title">方式二：使用Excel 表格上传</div>
-                <div class="method-desc">
-                  点击"excel 表格上传"按钮，选择包含文案内容的 Excel
-                  文件进行批量上传；（使用 node 接口转发上传）
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
     <script>
       const { createApp, ref, reactive, watch } = Vue;
-      const ElementPlus = window.ElementPlus;
-      const { ElMessage, ElIcon } = ElementPlus;
+      const { ElMessage } = window.ElementPlus;
 
       const App = {
         setup() {
@@ -763,593 +222,75 @@
             projectName: "Yoho",
             isGeneral: "false",
             catalog: dayjs().format("YYYYMM"),
-            branch: "",
             bgc: "",
             name: "",
             id: "",
             url: "",
-            textUrl: "",
             figma: "",
             op: "true",
             hot: "true",
-            branchCheck: "false", // 默认不开启分支检测
-            info: "", // 提测信息
-            activityUrl: "", // 活动链接
-            opNum: "",
-            hotNum: "",
-            fullscreenLoading: false,
-            uploadType: "text", // 上传类型：'text' 或 'excel'
+            opNum: "1",
+            hotNum: "1",
           });
 
-          // 添加上传加载状态
-          const uploadLoading = ref(false);
-          // 添加下载模板加载状态
-          const downloadLoading = ref(false);
+          const loading = ref(false);
 
+          // 监听 isGeneral 变化
           watch(
             () => form.isGeneral,
-            () => {
-              if (form.isGeneral == "true") {
-                form.catalog = "general";
-              } else {
-                form.catalog = dayjs().format("YYYYMM");
-              }
+            (val) => {
+              form.catalog =
+                val === "true" ? "general" : dayjs().format("YYYYMM");
             }
           );
 
-          const setItemWithExpiry = (key, value, expiryInHours) => {
-            const now = new Date();
-
-            // 计算过期时间（当前时间 + 指定小时数）
-            const expiryTime = now.getTime() + expiryInHours * 60 * 60 * 1000;
-
-            // 创建一个对象，包含值和过期时间
-            const item = {
-              value: value,
-              expiry: expiryTime,
-            };
-
-            // 将对象转为字符串并存储到 localStorage
-            localStorage.setItem(key, JSON.stringify(item));
-          };
-
-          const getItemWithExpiry = (key) => {
-            console.log("获取数据:", key);
-
-            const itemStr = localStorage.getItem(key);
-
-            // 如果项目不存在，返回 null
-            if (!itemStr) {
-              return null;
-            }
-
-            const item = JSON.parse(itemStr);
-            const now = new Date();
-
-            // 检查当前时间是否超过过期时间
-            if (now.getTime() > item.expiry) {
-              // 如果过期，删除该项并返回 null
-              localStorage.removeItem(key);
-              return null;
-            }
-
-            console.log("数据有效:", item.value);
-
-            return item.value; // 返回存储的值
-          };
-
-          const getInfo = async () => {
-            const url = "http://localhost:3000/info";
-            try {
-              const response = await axios.get(url);
-              const { data } = response.data;
-              Object.assign(form, data);
-              form.name = data.branch;
-
-              // 使用示例
-              const oldForm = getItemWithExpiry("create_activity");
-              if (oldForm) {
-                console.log("数据有效:", oldForm);
-                oldForm &&
-                  (form.projectName = oldForm.projectName) &&
-                  (form.name = oldForm.name) &&
-                  (form.id = oldForm.id) &&
-                  (form.url = oldForm.url) &&
-                  (form.textUrl = oldForm.textUrl) &&
-                  (form.figma = oldForm.figma) &&
-                  (form.bgc = oldForm.bgc) &&
-                  (form.op = oldForm.op) &&
-                  (form.hot = oldForm.hot) &&
-                  (form.info = oldForm.info) &&
-                  (form.activityUrl = oldForm.activityUrl) &&
-                  (form.opNum = oldForm.opNum);
-              } else {
-                console.log("数据已过期或不存在");
-              }
-            } catch (error) {
-              console.error("获取信息失败:", error);
-            }
-          };
-
-          const handleFileChange = async () => {
-            if (!form.id || !form.textUrl || !form.projectName) {
-              ElMessage({
-                message: "Please enter the projectName, id and textUrl.",
-                type: "warning",
-              });
-              return;
-            }
-
-            uploadLoading.value = true;
-            try {
-              // 显示初始提示
-              ElMessage({
-                message: `开始上传 ${form.projectName} 文本...`,
-                type: "info",
-              });
-
-              const url = "http://localhost:3000/toPythonText";
-              const res = await axios.post(url, form);
-
-              // 成功提示
-              console.log(
-                `Congrats, ${
-                  res.data.area || form.projectName
-                } text have uploaded.`
-              );
-              ElMessage({
-                message: `成功上传 ${form.projectName} 文本 (${form.id})`,
-                type: "success",
-                duration: 5000,
-              });
-            } catch (error) {
-              console.error("上传文本失败:", error);
-              ElMessage({
-                message: `上传文本失败: ${error.message || "请检查网络连接"}`,
-                type: "error",
-                duration: 5000,
-              });
-            } finally {
-              uploadLoading.value = false;
-            }
-          };
-
-          const handleInfo = () => {
-            const map = {
-              Yoho: {
-                test: "https://activity-h5-test.yoho.media",
-                master: "https://activity-h5.yoho.media",
-              },
-              Hiyoo: {
-                test: "https://activity-h5-test.chatchill.media/activity-vite",
-                master: "https://activity-h5.chatchill.media/activity-vite",
-              },
-              SoulStar: {
-                test: "https://activity-h5-test.dopalive.com",
-                master: "https://activity-h5.dopalive.com",
-              },
-            };
-
-            const test = `${map[form.projectName].test}/act_v_${form.catalog}_${
-              form.name
-            }`;
-            const master = `${map[form.projectName].master}/act_v_${
-              form.catalog
-            }_${form.name}`;
-
-            const opTextLinks = [];
-            const opMasterLinks = [];
-            for (let i = 1; i <= form.opNum; i++) {
-              opTextLinks.push(
-                `${test}_op${form.opNum == 1 ? "" : i}/index.html?lang=&key=`
-              );
-              opMasterLinks.push(
-                `${master}_op${form.opNum == 1 ? "" : i}/index.html?lang=&key=`
-              );
-            }
-
-            const text = `🌰活动提测: ${form.url}
-Figma: ${form.figma}
-活动🆔: ${form.id}
-活动链接(测试):
-${test}/index.html?lang=&key=
-${opTextLinks.join("\n")}
-${form.hot == "true" ? `${test}_op_hot/index.html?lang=&key=` : "--"}
-活动链接(正式):
-${master}/index.html?lang=EG&key=
-${opMasterLinks.join("\n")}
-${form.hot == "true" ? `${master}_op_hot/index.html?lang=&key=` : "--"}
-前端: ${shuffleArray(["@Stone", "@阿田", "@玄策"])}
-后端: ${shuffleArray(["@孤狼", "@待续", "@紫红"])}
-测试: ${shuffleArray(["@隆多", "@保罗"])}`;
-
-            form.info = text.replace(/--\n/g, "");
-            form.activityUrl = `${master}/index.html?lang=&key=`;
-            console.log(form.info);
-          };
-
-          const updateBase = () => {
-            const data = form;
-            const url = "http://localhost:3000/updateBase";
-            axios.post(url, data).then((res) => {
-              ElMessage({
-                message: `success`,
-                type: "success",
-              });
-            });
-          };
-
-          // 下载模板到当前运行目录
+          // 下载模板
           const downloadTemplate = async () => {
             if (!form.name) {
-              ElMessage({
-                message: "请输入 Activity Name",
-                type: "warning",
-              });
+              ElMessage.warning("请输入 Activity Name");
               return;
             }
 
-            downloadLoading.value = true;
+            loading.value = true;
             try {
-              const url = "http://localhost:3000/download-template";
-              // 传递完整的表单数据用于生成 config.ts
-              const res = await axios.post(url, {
-                projectName: form.projectName,
-                name: form.name,
-                id: form.id,
-                url: form.url,
-                textUrl: form.textUrl,
-                figma: form.figma,
-                bgc: form.bgc,
-                catalog: form.catalog,
-                info: form.info,
-                op: form.op,
-                opNum: form.opNum || 1,
-                hot: form.hot,
-                hotNum: form.hotNum || 1,
-              });
+              const res = await axios.post(
+                "http://localhost:3000/download-template",
+                {
+                  projectName: form.projectName,
+                  name: form.name,
+                  id: form.id,
+                  url: form.url,
+                  figma: form.figma,
+                  bgc: form.bgc,
+                  catalog: form.catalog,
+                  op: form.op,
+                  opNum: form.opNum || 1,
+                  hot: form.hot,
+                  hotNum: form.hotNum || 1,
+                }
+              );
 
               if (res.data.success) {
-                ElMessage({
-                  message: `模板下载成功！位置: ${res.data.targetDir}`,
-                  type: "success",
-                  duration: 5000,
-                });
+                ElMessage.success(res.data.message);
               } else {
-                ElMessage({
-                  message: `下载失败: ${res.data.message}`,
-                  type: "error",
-                });
+                ElMessage.error(res.data.message || "下载失败");
               }
             } catch (error) {
-              console.error("下载模板失败:", error);
-              ElMessage({
-                message: `下载失败: ${error.message || "请检查网络连接"}`,
-                type: "error",
-              });
+              ElMessage.error("下载失败: " + (error.message || "请检查网络"));
             } finally {
-              downloadLoading.value = false;
+              loading.value = false;
             }
-          };
-
-          // 创建并切换 git 分支的函数
-          const createAndSwitchBranch = async () => {
-            // 直接使用用户输入的活动名称作为分支名
-            const branchName = form.name;
-
-            console.log("Creating and switching to branch:", branchName);
-
-            // 调用后端 API 创建并切换分支
-            const gitUrl = "http://localhost:3000/git-branch";
-            const gitData = {
-              branchName: branchName,
-              projectName: form.projectName,
-              branchCheck: form.branchCheck,
-            };
-
-            const response = await axios.post(gitUrl, gitData);
-
-            if (response.data.success) {
-              ElMessage({
-                message: `Successfully created and switched to branch: ${branchName}`,
-                type: "success",
-              });
-              return true; // 返回成功状态
-            } else {
-              ElMessage({
-                message: `Failed to create branch: ${response.data.message}`,
-                type: "error",
-              });
-              throw new Error(response.data.message); // 抛出错误，让 Promise.allSettled 捕获
-            }
-          };
-
-          // 创建活动文件的函数
-          const createActivityFile = async () => {
-            handleInfo();
-            const data = { ...form };
-            const url = "http://localhost:3000/submit";
-            data.op = data.op == "true" ? "1" : "0";
-            data.hot = data.hot == "true" ? "1" : "0";
-
-            console.log("data", data);
-
-            const res = await axios.post(url, data);
-            return res;
-          };
-
-          const onSubmit = async () => {
-            if (!form.url) {
-              ElMessage({
-                message: `Error, input activity doc.`,
-                type: "warning",
-              });
-              return;
-            }
-            if (!form.opNum) {
-              form.opNum = 1;
-            }
-            form.fullscreenLoading = true;
-
-            try {
-              // 并行执行：分支创建和文件创建同时进行
-              // createAndSwitchBranch(),
-              // const [branchResult, fileResult] = await Promise.allSettled([
-              //   ])
-              createActivityFile();
-
-              // // 处理分支创建结果
-              // if (branchResult.status === 'fulfilled') {
-              //   console.log('分支创建成功')
-              // } else {
-              //   console.error('分支创建失败:', branchResult.reason)
-              //   ElMessage({
-              //     message: `分支创建失败: ${branchResult.reason.message}`,
-              //     type: 'warning'
-              //   })
-              // }
-
-              ElMessage({
-                message: `Congrats, the file has been created.${JSON.stringify(
-                  form
-                )}`,
-                type: "success",
-              });
-              console.log("JSON.stringify(form)", JSON.stringify(form));
-              // 使用示例
-              setItemWithExpiry(`create_activity`, form, 1);
-              // 处理文件创建结果
-              // if (fileResult.status === 'fulfilled') {
-              // } else {
-              //   console.error('文件创建失败:', fileResult.reason)
-              //   ElMessage({
-              //     message: `文件创建失败: ${fileResult.reason.message}`,
-              //     type: 'error'
-              //   })
-              // }
-            } catch (error) {
-              console.error("提交过程中出错:", error);
-              ElMessage({
-                message: `提交失败: ${error.message}`,
-                type: "error",
-              });
-            } finally {
-              form.fullscreenLoading = false;
-            }
-          };
-
-          function shuffleArray(array) {
-            const newArray = [...array];
-            for (let i = newArray.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [newArray[i], newArray[j]] = [newArray[j], newArray[i]]; // 交换位置
-            }
-            return newArray;
-          }
-
-          getInfo();
-
-          // 自执行方法：根据项目名称获取需求文档URL
-          const getProjectDocUrl = (() => {
-            // 需求文档配置
-            const docConfig = [
-              {
-                label: "yoho需求文档",
-                url: "https://micoworld.feishu.cn/wiki/XfKXwiMAFi7XsRk4vh6cM4mWnNf",
-              },
-              {
-                label: "hiyoo需求文档",
-                url: "https://micoworld.feishu.cn/wiki/LZH8wyvVmi1Q22ktSIdc89FKnAd",
-              },
-            ];
-
-            // 返回获取URL的方法
-            return (projectName) => {
-              // 将项目名称转换为小写，用于匹配
-              const projectLower = projectName.toLowerCase();
-
-              // 查找匹配的文档
-              const matchedDoc = docConfig.find((doc) => {
-                const docLabel = doc.label.toLowerCase();
-                // 匹配项目名称和"需求文档"关键词（不区分大小写），忽略月份信息
-                return (
-                  docLabel.includes(projectLower) &&
-                  docLabel.includes("需求文档")
-                );
-              });
-
-              return matchedDoc ? matchedDoc.url : null;
-            };
-          })();
-
-          // 监听项目名称变化，自动填充文档URL
-          watch(
-            () => form.projectName,
-            (newProjectName) => {
-              if (newProjectName) {
-                const docUrl = getProjectDocUrl(newProjectName);
-              }
-            },
-            { immediate: true }
-          );
-
-          // 打开项目需求文档的方法
-          const openProjectDoc = () => {
-            if (!form.projectName) {
-              ElMessage({
-                message: "请先选择项目名称",
-                type: "warning",
-              });
-              return;
-            }
-
-            const docUrl = getProjectDocUrl(form.projectName);
-            if (docUrl) {
-              // 在新标签页打开需求文档
-              window.open(docUrl, "_blank");
-              console.log(
-                `在新标签页打开 ${form.projectName} 需求文档:`,
-                docUrl
-              );
-            } else {
-              ElMessage({
-                message: `未找到 ${form.projectName} 的需求文档`,
-                type: "warning",
-              });
-            }
-          };
-
-          const handleFileChangeExcel = () => {
-            if (!form.id) {
-              ElMessage({
-                message: "Please enter the activity id.",
-                type: "error",
-              });
-              return;
-            }
-            excelInput.value?.click();
-          };
-
-          const excelInput = ref(null);
-
-          function excelInputChange(event) {
-            if (event.target.value.toUpperCase().endsWith("XLSX")) {
-              const file = event.target.files[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = async function (e) {
-                  const data = new Uint8Array(e.target.result);
-                  const workbook = XLSX.read(data, { type: "array" });
-
-                  // 假设 Excel 中只有一个表格，取第一个表格
-                  const sheetName = workbook.SheetNames[0];
-                  const sheet = workbook.Sheets[sheetName];
-
-                  const columnData = {};
-                  // 解析表格中的数据
-                  for (const cellAddress in sheet) {
-                    if (
-                      cellAddress[0] === "!" ||
-                      !sheet.hasOwnProperty(cellAddress)
-                    )
-                      continue;
-
-                    const cell = sheet[cellAddress];
-                    const columnName = cellAddress.match(/[A-Z]+/)[0]; // 获取列名
-                    const cellValue = cell.v;
-
-                    if (!columnData[columnName]) {
-                      columnData[columnName] = [];
-                    }
-
-                    columnData[columnName].push({
-                      content: cellValue,
-                      index: cellAddress.slice(1),
-                    });
-                  }
-
-                  for (const columnName in columnData) {
-                    const columnValues = columnData[columnName];
-                    const _area = columnValues[0].content.replace(
-                      /[\u4e00-\u9fa5\s]/g,
-                      ""
-                    );
-                    console.log(_area, "_area");
-                    const data = {
-                      activityId: form.id,
-                      area: ["Arabic", "XM", "EG"].includes(_area)
-                        ? "ME"
-                        : ["Chinese", "CN"].includes(_area)
-                        ? "TW"
-                        : _area,
-                      content: `{"list":${JSON.stringify(columnValues)}}`,
-                      count: columnValues.length,
-                      operator: "stone@micous.com",
-                    };
-
-                    await upload(data);
-                  }
-
-                  // 清空 input 的 value，确保下次选择相同文件时也能触发 change 事件
-                  event.target.value = "";
-                };
-                reader.readAsArrayBuffer(file);
-              }
-            }
-          }
-
-          const upload = async (data) => {
-            if (["ENGLISH", "NOTE", "EN", "EVENTTITLE"].includes(data.area))
-              return;
-
-            // form.name 中首字母小写并去除空格
-            data.name = data.name
-              ?.replace(/\s+/g, "")
-              ?.replace(/^[A-Z]/, (match) => match.toLowerCase());
-
-            const url =
-              form.projectName == "Hiyoo"
-                ? "http://localhost:3000/sendHiyoo"
-                : "http://localhost:3000/send";
-
-            await axios.post(url, data).then((res) => {
-              if (res.data.data.code == 1) {
-                console.log(`Congrats, ${data.area} text have uploaded.`);
-                ElMessage({
-                  message: `Congrats, ${data.area} text have uploaded.`,
-                  type: "success",
-                });
-              } else {
-                console.log(`Error, ${data.area} text hava error.`);
-                ElMessage({
-                  message: `Error, ${data.area} text hava error.`,
-                  type: "warning",
-                });
-              }
-            });
           };
 
           return {
             form,
-            onSubmit,
-            handleInfo,
-            handleFileChange,
-            handleFileChangeExcel,
-            openProjectDoc,
-            updateBase,
-            uploadLoading,
-            downloadLoading,
+            loading,
             downloadTemplate,
-            upload,
-            excelInputChange,
-            excelInput,
           };
         },
       };
 
-      const app = createApp(App);
-      app.use(ElementPlus);
-      app.mount("#app");
+      createApp(App).use(window.ElementPlus).mount("#app");
     </script>
   </body>
 </html>

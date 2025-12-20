@@ -5,7 +5,7 @@ const chalk = require("chalk");
 const open = require("open");
 const https = require("https");
 const http = require("http");
-const { createServer, findIndexFile } = require("./server");
+const { createServer, findIndexFile, CREATE_PAGE_CACHE_FILE } = require("./server");
 
 // 临时目录名称
 const TEMP_DIR_NAME = ".web-preview-temp";
@@ -287,12 +287,6 @@ async function previewUrl(options) {
   process.on("SIGTERM", handleExit);
 
   try {
-    console.log(chalk.cyan("\n🚀 Web Preview CLI - URL 模式\n"));
-    console.log(chalk.gray("─".repeat(50)));
-    console.log(`  URL: ${chalk.green(url)}`);
-    console.log(`  端口: ${chalk.green(port)}`);
-    console.log(chalk.gray("─".repeat(50)));
-
     // 清理并创建临时目录
     cleanupTempDir(tempDir);
     fs.mkdirSync(tempDir, { recursive: true });
@@ -301,24 +295,26 @@ async function previewUrl(options) {
     const fileName = getFileNameFromUrl(url);
     const destPath = path.join(tempDir, fileName);
 
-    // 下载文件
-    await showLoading("正在下载 HTML 文件...", downloadFile(url, destPath));
-    console.log(chalk.green("✓ 下载完成！\n"));
+    // 检查是否有缓存的 HTML 文件
+    if (CREATE_PAGE_CACHE_FILE && fs.existsSync(CREATE_PAGE_CACHE_FILE) && url.includes("create-page/index.html")) {
+      // 从缓存复制文件
+      fs.copyFileSync(CREATE_PAGE_CACHE_FILE, destPath);
+    } else {
+      // 下载文件
+      await showLoading("正在下载 HTML 文件...", downloadFile(url, destPath));
+    }
 
     // 启动服务器
     server = await createServer(tempDir, port);
 
     const localUrl = `http://localhost:${port}`;
 
-    console.log(chalk.green("✓ 服务器已启动！\n"));
-    console.log(chalk.cyan("🌐 访问地址:"));
-    console.log(`   ${chalk.bold.underline(localUrl)}\n`);
-    console.log(chalk.gray("按 Ctrl+C 停止服务器并清理临时文件\n"));
+    console.log(chalk.green(`\n🌐 运行地址: ${chalk.bold.underline(localUrl)}`));
+    console.log(chalk.gray("按 Ctrl+C 退出\n"));
 
     // 自动打开浏览器
     if (autoOpen) {
       await open(localUrl);
-      console.log(chalk.green("✓ 已在浏览器中打开\n"));
     }
 
     // 保持进程运行

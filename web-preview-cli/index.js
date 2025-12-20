@@ -17,6 +17,7 @@ const {
   getCacheInfo,
   CACHE_DIR,
   VERSION_FILE,
+  CREATE_PAGE_CACHE_FILE,
 } = require("./lib/server");
 
 module.exports = {
@@ -41,4 +42,5 @@ module.exports = {
   getCacheInfo,
   CACHE_DIR,
   VERSION_FILE,
+  CREATE_PAGE_CACHE_FILE,
 };
