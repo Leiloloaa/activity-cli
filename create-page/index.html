@@ -36,7 +36,6 @@
         width: 800px;
         padding: 20px;
         padding-top: 0px;
-        margin-top: -80px;
         animation: fadeInUp 0.6s ease-out;
       }
 
@@ -111,6 +110,12 @@
         box-shadow: 0 6px 20px rgba(103, 194, 58, 0.4) !important;
       }
 
+      .el-button--primary {
+        border-radius: 8px !important;
+        min-width: 90px !important;
+        flex-shrink: 0 !important;
+      }
+
       @keyframes fadeInUp {
         from {
           opacity: 0;
@@ -165,6 +170,18 @@
             </el-form-item>
             <el-form-item label="Document URL">
               <el-input v-model="form.url" placeholder="需求文档链接" />
+            </el-form-item>
+            <el-form-item label="Text URL">
+              <el-input v-model="form.textUrl" placeholder="飞书文案链接" />
+            </el-form-item>
+            <el-form-item label="">
+              <el-button
+                type="primary"
+                @click="uploadText"
+                :loading="textLoading"
+              >
+                上传文案
+              </el-button>
             </el-form-item>
             <el-form-item label="Figma URL">
               <el-input v-model="form.figma" placeholder="设计稿链接" />
@@ -226,6 +243,7 @@
             name: "",
             id: "",
             url: "",
+            textUrl: "",
             figma: "",
             op: "true",
             hot: "true",
@@ -234,6 +252,7 @@
           });
 
           const loading = ref(false);
+          const textLoading = ref(false);
 
           // 监听 isGeneral 变化
           watch(
@@ -243,6 +262,44 @@
                 val === "true" ? "general" : dayjs().format("YYYYMM");
             }
           );
+
+          // 上传文案
+          const uploadText = async () => {
+            if (!form.id) {
+              ElMessage.warning("请输入 Activity ID");
+              return;
+            }
+            if (!form.name) {
+              ElMessage.warning("请输入 Activity Name");
+              return;
+            }
+            if (!form.textUrl) {
+              ElMessage.warning("请输入飞书文案链接");
+              return;
+            }
+
+            textLoading.value = true;
+            try {
+              const res = await axios.post(
+                "http://localhost:3000/toPythonText",
+                {
+                  id: form.id,
+                  name: form.projectName,
+                  textUrl: form.textUrl,
+                }
+              );
+
+              if (res.data.data && res.data.data.code === 1) {
+                ElMessage.success(res.data.data.message || "文案上传成功");
+              } else {
+                ElMessage.error(res.data.data?.message || "上传失败");
+              }
+            } catch (error) {
+              ElMessage.error("上传失败: " + (error.message || "请检查网络"));
+            } finally {
+              textLoading.value = false;
+            }
+          };
 
           // 下载模板
           const downloadTemplate = async () => {
@@ -260,6 +317,7 @@
                   name: form.name,
                   id: form.id,
                   url: form.url,
+                  textUrl: form.textUrl,
                   figma: form.figma,
                   bgc: form.bgc,
                   catalog: form.catalog,
@@ -285,7 +343,9 @@
           return {
             form,
             loading,
+            textLoading,
             downloadTemplate,
+            uploadText,
           };
         },
       };

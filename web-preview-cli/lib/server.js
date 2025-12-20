@@ -4,6 +4,10 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const chalk = require("chalk");
+const { exec } = require("child_process");
+const { promisify } = require("util");
+
+const execPromise = promisify(exec);
 
 // GitHub 仓库配置
 const GITHUB_REPO = "Leiloloaa/activity-cli";
@@ -869,6 +873,177 @@ async function handleDownloadTemplate(req, res) {
 }
 
 /**
+ * 处理 /toPythonText API - 上传文案到 Python 脚本
+ */
+async function handleToPythonText(req, res) {
+  // 设置 CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  // 解析 POST body
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", async () => {
+    try {
+      const data = body ? JSON.parse(body) : {};
+
+      console.log("收到活动信息:", JSON.stringify(data));
+
+      // 数据校验
+      if (!data.id || !data.name || !data.textUrl) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            data: {
+              code: 0,
+              message:
+                "参数错误，活动ID(id)、项目名称(name)和飞书文档链接(textUrl)不能为空",
+            },
+          })
+        );
+      }
+
+      // 检查活动ID是否为数字
+      if (isNaN(parseInt(data.id))) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            data: {
+              code: 0,
+              message: "活动ID必须是数字",
+            },
+          })
+        );
+      }
+
+      // 计算 Python 脚本和虚拟环境的绝对路径
+      // server.js 在 web-preview-cli/lib/ 目录下
+      // event 目录在项目根目录下
+      const scriptPath = path.resolve(__dirname, "../../event/add_activity.py");
+      const venvPath = path.resolve(__dirname, "../../event/myenv");
+      const projectRoot = path.resolve(__dirname, "../..");
+
+      console.log(`项目根目录: ${projectRoot}`);
+      console.log(`Python脚本路径: ${scriptPath}`);
+      console.log(`虚拟环境路径: ${venvPath}`);
+
+      // 检查路径是否存在
+      if (!fs.existsSync(scriptPath)) {
+        console.error(`错误: Python脚本不存在 ${scriptPath}`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            data: {
+              code: 0,
+              message: "Python脚本文件不存在",
+              error: `找不到文件: ${scriptPath}`,
+            },
+          })
+        );
+      }
+
+      if (!fs.existsSync(venvPath)) {
+        console.error(`错误: 虚拟环境不存在 ${venvPath}`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            data: {
+              code: 0,
+              message: "Python虚拟环境不存在",
+              error: `找不到目录: ${venvPath}`,
+            },
+          })
+        );
+      }
+
+      // 使用 Shell 命令激活虚拟环境并执行 Python 脚本
+      const isWindows = process.platform === "win32";
+      let command;
+
+      if (isWindows) {
+        // Windows 环境
+        command = `cd "${projectRoot}" && "${venvPath}\\Scripts\\activate.bat" && python "${scriptPath}" ${data.id} "${data.name}" "${data.textUrl}"`;
+      } else {
+        // Unix/Mac 环境 - 注意使用正确的Python解释器路径
+        const pythonPath = path.join(venvPath, "bin", "python3");
+        command = `cd "${projectRoot}" && "${pythonPath}" "${scriptPath}" ${data.id} "${data.name}" "${data.textUrl}"`;
+      }
+
+      console.log(`执行命令: ${command}`);
+
+      // 使用 child_process.exec 执行Shell命令
+      const { stdout, stderr } = await execPromise(command, {
+        maxBuffer: 1024 * 1024, // 增加缓冲区大小到1MB
+      });
+
+      console.log("Python脚本执行完成");
+      console.log("标准输出:", stdout);
+
+      if (stderr && !stderr.includes("WARNING:")) {
+        console.error("标准错误:", stderr);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            data: {
+              code: 0,
+              message: "处理失败，请查看日志",
+              error: stderr,
+            },
+          })
+        );
+      }
+
+      // 检查输出是否包含成功信息
+      const success =
+        stdout.includes("成功添加活动") && stdout.includes("文案上传完成");
+
+      if (success) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            data: {
+              code: 1,
+              message: "活动添加成功，文案已上传",
+              result: stdout,
+            },
+          })
+        );
+      } else {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            data: {
+              code: 0,
+              message: "处理过程中出现问题",
+              result: stdout,
+            },
+          })
+        );
+      }
+    } catch (error) {
+      console.error("执行Python脚本出错:", error);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          data: {
+            code: 0,
+            message: "系统错误",
+            error: error.message,
+          },
+        })
+      );
+    }
+  });
+}
+
+/**
  * 创建并启动 HTTP 服务器
  * @param {string} rootDir - 静态文件根目录
  * @param {number} port - 服务器端口
@@ -885,6 +1060,11 @@ function createServer(rootDir, port, options = {}) {
       // 处理 API 请求
       if (urlPath === "/download-template") {
         await handleDownloadTemplate(req, res);
+        return;
+      }
+
+      if (urlPath === "/toPythonText") {
+        await handleToPythonText(req, res);
         return;
       }
 

@@ -1,0 +1,16 @@
+# 虚拟环境
+myenv/
+__pycache__/
+*.pyc
+
+# 数据和日志文件
+logs/
+data/
+
+# IDE相关
+.idea/
+.vscode/
+*.swp
+.DS_Store 
+
+event/token_cache.sqlite

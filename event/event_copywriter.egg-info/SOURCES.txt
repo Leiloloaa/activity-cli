@@ -1,0 +1,13 @@
+setup.py
+config/__init__.py
+config/connect_linux.py
+config/get_chatchill_token.py
+config/get_token.py
+config/logs.py
+config/rediss.py
+config/sql.py
+event_copywriter.egg-info/PKG-INFO
+event_copywriter.egg-info/SOURCES.txt
+event_copywriter.egg-info/dependency_links.txt
+event_copywriter.egg-info/requires.txt
+event_copywriter.egg-info/top_level.txt
