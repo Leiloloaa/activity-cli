@@ -1,0 +1,37 @@
+$projectName: "https://static.dramabite.media/activity-image/202511_annualGala/";
+@mixin bg(
+  $imgName,
+  $isImport: false,
+  $w: 100%,
+  $h: 100%,
+  $x: 0,
+  $y: 0,
+  $repeat: no-repeat
+) {
+  background-image: url($projectName + $imgName + ".png")
+    if($isImport, !important, null);
+  background-size: $w $h;
+  background-repeat: $repeat;
+  background-position: $x $y;
+}
+
+@mixin bgImage($imgName, $repeat, $position) {
+  background-image: url($projectName + $imgName);
+  background-repeat: $repeat;
+  background-position: $position;
+  background-size: 100% 100%;
+}
+
+%fc {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+%oe {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// https://oss.console.aliyun.com/bucket/oss-ap-southeast-1/yoho-activity-www/object?path=activity%2Fregular_giftsRanking%2Fassets%2Fimages%2F

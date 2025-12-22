@@ -11,7 +11,7 @@
             <div class="toast-box public-fixed-center">
               <div class="panel">
                 <RankFrame :frame="frame">
-                  <div v-bg="'close'" class="close-btn" @click="close" :style="closeOpt"></div>
+                  <OssImg src="close" class="close-btn" @click="close" :style="closeOpt"></OssImg>
                   <div class="scroll-content">
                     <slot></slot>
                   </div>

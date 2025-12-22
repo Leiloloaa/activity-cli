@@ -1,0 +1,99 @@
+.reward-component-gr {
+  .picture {
+    width: 1.68rem;
+    height: 1.68rem;
+    flex-shrink: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    position: relative;
+    z-index: 1;
+
+    img {
+      width: 1.12rem;
+      height: 1.12rem;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+
+    .corner {
+      width: 1.04rem;
+      height: 0.32rem;
+      flex-shrink: 0;
+
+      position: absolute;
+      top: 0.14rem;
+      right: 0;
+      z-index: 1;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      span {
+        color: #af1400;
+        text-align: center;
+        font-family: Arial;
+        font-size: 0.2rem;
+        font-style: normal;
+        font-weight: 700;
+        line-height: 0.2rem;
+      }
+    }
+  }
+
+  .describe-part {
+    width: 100%;
+    margin-top: 0.08rem;
+
+    .text {
+      color: #af1400;
+      text-align: center;
+      font-family: Arial;
+      font-size: 0.2rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 0.2rem;
+    }
+
+    .name {
+      color: #ff9b30;
+      text-align: center;
+      font-family: Arial;
+      font-size: 0.26rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 0.34rem;
+    }
+  }
+
+  .coin {
+    width: 1.44rem;
+    height: 0.4rem;
+    flex-shrink: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    span {
+      color: #ff9b30;
+      text-align: center;
+      font-family: Arial;
+      font-size: 0.26rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 0.34rem;
+    }
+
+    img {
+      width: 0.26rem;
+      height: 0.26rem;
+      flex-shrink: 0;
+      object-fit: contain;
+      margin: 0 0.03rem;
+    }
+  }
+}

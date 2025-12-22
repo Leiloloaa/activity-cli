@@ -1,0 +1,196 @@
+// 超出省略号
+.ov,
+.ow,
+.ov {
+  overflow: hidden; //超出的文本隐藏
+  text-overflow: ellipsis; //溢出用省略号显示
+  white-space: nowrap; //溢出不换行
+}
+
+.fc {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fcc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.f-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.fc-line {
+  display: flex;
+  align-items: center;
+}
+
+.fba {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fac {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+// 伪类居中
+.public-before-vertical-middle {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 100%;
+  vertical-align: middle;
+}
+
+// 伪类icon
+.public-before-basis-style {
+  content: '';
+  display: inline-block;
+  position: absolute;
+}
+
+//  全屏背景
+.public-fixed-fullScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  // 兼容性不考虑也可以使用如下
+  // width: 100vw;
+  // height: 100vh;
+}
+
+.public-mask-bg {
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(#000, 0.4);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99;
+}
+
+// 弹窗居中显示
+.public-fixed-center {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+  z-index: 2;
+}
+
+.public-flex-left {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
+.public-flex-start {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.public-flex-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.public-flex-multi-row-start {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+  align-content: flex-start;
+}
+
+.scrollX {
+  overflow-x: scroll;
+  overflow-y: hidden;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scroll-behavior: smooth;
+  transition-duration: 1s;
+}
+
+.scrollY {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scroll-behavior: smooth;
+  transition-duration: 1s;
+}
+
+// 弹窗居中显示
+.public-fixed-center {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+  z-index: 2;
+}
+
+// 超出省略号
+.ov {
+  overflow: hidden; //超出的文本隐藏
+  text-overflow: ellipsis; //溢出用省略号显示
+  white-space: nowrap; //溢出不换行
+}
+
+// list 一行 flex 横向布局
+.public-flex-lineAround {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.public-flex-Between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.public-flex-center,
+.public_flex_center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.public-flex-left {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
+.public-flex-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.public-flex-row {
+  display: flex;
+  flex-direction: row;
+}
