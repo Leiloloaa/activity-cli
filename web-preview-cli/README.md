@@ -146,6 +146,54 @@ actweb config -d           # 删除配置
 └───────┴─────────────────┘
 ```
 
+#### 核心代码示例
+
+```javascript
+const { 
+  preCacheTemplates,   // 预缓存模板
+  preparePythonEnv,    // 准备 Python 环境
+  clearCache,          // 清除缓存
+  getCacheInfo         // 获取缓存信息
+} = require('web-preview-cli');
+
+// 1. 预缓存模板（首次自动下载，后续检查更新）
+await preCacheTemplates();
+// 输出: ✓ 创建页缓存已准备好
+// 输出: ✓ 模板缓存已准备好
+
+// 2. 强制刷新缓存
+await preCacheTemplates(true);
+// 输出: ⚠️ 检测到远程有变更，重新下载缓存...
+
+// 3. 准备 Python 环境（用于上传文案功能）
+await preparePythonEnv();
+// 输出: ✓ Python 环境已准备好（使用缓存）
+
+// 4. 强制刷新 Python 环境
+await preparePythonEnv(true);
+// 输出: 📦 准备 Python 环境...
+// 输出: ✓ Python 脚本下载完成
+// 输出: ✓ 虚拟环境创建完成
+// 输出: ✓ Python 依赖安装完成
+
+// 5. 获取缓存信息
+const info = getCacheInfo();
+console.log(info);
+// {
+//   cacheDir: '/Users/xxx/.actweb-cache',
+//   exists: true,
+//   version: 'abc123...',
+//   projects: [
+//     { name: 'yoho', templates: ['activity', 'activity_op', 'activity_op_hot'] },
+//     ...
+//   ]
+// }
+
+// 6. 清除所有缓存
+clearCache();
+// 返回 true 表示清除成功
+```
+
 ### 特殊情况处理
 
 | 情况           | 处理方式             |

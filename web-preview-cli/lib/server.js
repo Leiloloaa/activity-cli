@@ -23,8 +23,15 @@ const TEMPLATE_TYPES = ["activity", "activity_op", "activity_op_hot"];
 const CREATE_PAGE_HTML = "create-page/index.html";
 const CREATE_PAGE_CACHE_FILE = path.join(CACHE_DIR, "create-page.html");
 
+// Python 环境缓存
+const EVENT_CACHE_DIR = path.join(CACHE_DIR, "event");
+const PYTHON_VENV_DIR = path.join(EVENT_CACHE_DIR, "myenv");
+const EVENT_VERSION_FILE = path.join(CACHE_DIR, ".event-version");
+
 // 缓存状态
 let cacheReady = false;
+let pythonEnvReady = false;
+let pythonEnvPromise = null;
 let cachePromise = null;
 let remoteVersion = null;
 
@@ -449,6 +456,220 @@ async function waitForCache() {
 }
 
 /**
+ * 检查 Python 环境是否已准备好
+ */
+function isPythonEnvReady() {
+  if (!fs.existsSync(EVENT_CACHE_DIR)) return false;
+  if (!fs.existsSync(PYTHON_VENV_DIR)) return false;
+
+  // 检查虚拟环境中的 Python 解释器是否存在
+  const isWindows = process.platform === "win32";
+  const pythonPath = isWindows
+    ? path.join(PYTHON_VENV_DIR, "Scripts", "python.exe")
+    : path.join(PYTHON_VENV_DIR, "bin", "python3");
+
+  return fs.existsSync(pythonPath);
+}
+
+/**
+ * 获取 event 目录的本地缓存版本
+ */
+function getEventLocalVersion() {
+  try {
+    if (fs.existsSync(EVENT_VERSION_FILE)) {
+      return fs.readFileSync(EVENT_VERSION_FILE, "utf8").trim();
+    }
+  } catch {
+    // 忽略错误
+  }
+  return null;
+}
+
+/**
+ * 保存 event 目录的本地缓存版本
+ */
+function saveEventLocalVersion(version) {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+    }
+    fs.writeFileSync(EVENT_VERSION_FILE, version, "utf8");
+  } catch {
+    // 忽略错误
+  }
+}
+
+/**
+ * 检查 event 缓存版本是否有效
+ */
+async function checkEventCacheVersion() {
+  const localVersion = getEventLocalVersion();
+  if (!localVersion) return { valid: false, remoteVersion: null };
+
+  // 获取远程版本
+  const remoteVer = await fetchRemoteVersion();
+  if (!remoteVer) {
+    // 网络错误时，使用本地缓存
+    console.log(chalk.gray("  无法获取远程版本，使用本地 Python 环境缓存"));
+    return { valid: true, remoteVersion: null };
+  }
+
+  if (localVersion === remoteVer) {
+    return { valid: true, remoteVersion: remoteVer };
+  }
+
+  console.log(chalk.yellow("  检测到 Python 环境更新，将刷新缓存"));
+  return { valid: false, remoteVersion: remoteVer };
+}
+
+/**
+ * 下载 event 目录并设置 Python 虚拟环境
+ * @param {boolean} forceRefresh - 是否强制刷新
+ */
+async function preparePythonEnv(forceRefresh = false) {
+  if (pythonEnvReady && !forceRefresh) return { success: true };
+  if (pythonEnvPromise && !forceRefresh) return pythonEnvPromise;
+
+  pythonEnvPromise = (async () => {
+    try {
+      // 检查版本是否有效
+      const { valid: versionValid, remoteVersion: eventRemoteVersion } =
+        await checkEventCacheVersion();
+      const envReady = isPythonEnvReady();
+
+      // 如果版本有效且环境已就绪，直接返回
+      if (!forceRefresh && versionValid && envReady) {
+        console.log(chalk.green("✓ Python 环境已准备好（使用缓存）"));
+        pythonEnvReady = true;
+        return { success: true };
+      }
+
+      // 判断是否需要重新下载
+      const needRefresh = forceRefresh || !versionValid;
+
+      console.log(chalk.cyan("\n📦 准备 Python 环境..."));
+
+      // 确保缓存目录存在
+      if (!fs.existsSync(CACHE_DIR)) {
+        fs.mkdirSync(CACHE_DIR, { recursive: true });
+      }
+
+      // 如果需要刷新，删除旧的 event 目录
+      if (needRefresh && fs.existsSync(EVENT_CACHE_DIR)) {
+        console.log(chalk.yellow("  清除旧的 Python 环境..."));
+        fs.rmSync(EVENT_CACHE_DIR, { recursive: true, force: true });
+        // 同时删除版本文件
+        if (fs.existsSync(EVENT_VERSION_FILE)) {
+          fs.unlinkSync(EVENT_VERSION_FILE);
+        }
+      }
+
+      // 下载 event 目录
+      if (!fs.existsSync(EVENT_CACHE_DIR)) {
+        process.stdout.write("  下载 Python 脚本...");
+        try {
+          await downloadGitHubDir("event", EVENT_CACHE_DIR);
+          process.stdout.write("\r" + " ".repeat(40) + "\r");
+          console.log(chalk.green("✓ Python 脚本下载完成"));
+        } catch (err) {
+          process.stdout.write("\r" + " ".repeat(40) + "\r");
+          console.log(chalk.red("✗ Python 脚本下载失败: " + err.message));
+          return {
+            success: false,
+            error: "Python 脚本下载失败: " + err.message,
+          };
+        }
+      }
+
+      // 创建虚拟环境
+      if (!fs.existsSync(PYTHON_VENV_DIR)) {
+        process.stdout.write("  创建 Python 虚拟环境...");
+        try {
+          await execPromise(`python3 -m venv "${PYTHON_VENV_DIR}"`, {
+            cwd: EVENT_CACHE_DIR,
+          });
+          process.stdout.write("\r" + " ".repeat(40) + "\r");
+          console.log(chalk.green("✓ 虚拟环境创建完成"));
+        } catch (err) {
+          process.stdout.write("\r" + " ".repeat(40) + "\r");
+          // 尝试使用 python 命令
+          try {
+            await execPromise(`python -m venv "${PYTHON_VENV_DIR}"`, {
+              cwd: EVENT_CACHE_DIR,
+            });
+            process.stdout.write("\r" + " ".repeat(40) + "\r");
+            console.log(chalk.green("✓ 虚拟环境创建完成"));
+          } catch (err2) {
+            console.log(chalk.red("✗ 虚拟环境创建失败: " + err2.message));
+            return {
+              success: false,
+              error: "虚拟环境创建失败，请确保已安装 Python 3",
+            };
+          }
+        }
+      }
+
+      // 安装依赖
+      const requirementsPath = path.join(EVENT_CACHE_DIR, "requirements.txt");
+      if (fs.existsSync(requirementsPath)) {
+        process.stdout.write("  安装 Python 依赖...");
+        try {
+          const isWindows = process.platform === "win32";
+          const pipPath = isWindows
+            ? path.join(PYTHON_VENV_DIR, "Scripts", "pip")
+            : path.join(PYTHON_VENV_DIR, "bin", "pip");
+
+          await execPromise(`"${pipPath}" install -r "${requirementsPath}"`, {
+            cwd: EVENT_CACHE_DIR,
+            maxBuffer: 1024 * 1024 * 10, // 10MB 缓冲区
+          });
+          process.stdout.write("\r" + " ".repeat(40) + "\r");
+          console.log(chalk.green("✓ Python 依赖安装完成"));
+        } catch (err) {
+          process.stdout.write("\r" + " ".repeat(40) + "\r");
+          console.log(chalk.yellow("⚠️ 部分依赖安装失败: " + err.message));
+        }
+      }
+
+      // 保存版本信息
+      if (eventRemoteVersion) {
+        saveEventLocalVersion(eventRemoteVersion);
+      } else {
+        // 如果之前没有获取到版本，重新获取
+        const version = await fetchRemoteVersion();
+        if (version) {
+          saveEventLocalVersion(version);
+        }
+      }
+
+      console.log(chalk.green("✓ Python 环境准备完成\n"));
+      pythonEnvReady = true;
+      return { success: true };
+    } catch (error) {
+      console.error(chalk.red("Python 环境准备失败:"), error.message);
+      return { success: false, error: error.message };
+    }
+  })();
+
+  return pythonEnvPromise;
+}
+
+/**
+ * 获取 Python 环境路径
+ */
+function getPythonEnvPaths() {
+  const isWindows = process.platform === "win32";
+  return {
+    eventDir: EVENT_CACHE_DIR,
+    venvDir: PYTHON_VENV_DIR,
+    pythonPath: isWindows
+      ? path.join(PYTHON_VENV_DIR, "Scripts", "python.exe")
+      : path.join(PYTHON_VENV_DIR, "bin", "python3"),
+    scriptPath: path.join(EVENT_CACHE_DIR, "add_activity.py"),
+  };
+}
+
+/**
  * 从缓存复制模板到目标目录
  */
 function copyFromCache(cachePath, targetPath) {
@@ -698,7 +919,8 @@ async function handleDownloadTemplate(req, res) {
 
       // 优先从缓存复制，否则从 GitHub 下载
       const activityCachePath = getCachedTemplatePath(templateDir, "activity");
-      const usedCache = cacheAvailable && copyFromCache(activityCachePath, targetDir);
+      const usedCache =
+        cacheAvailable && copyFromCache(activityCachePath, targetDir);
       if (!usedCache) {
         await downloadGitHubDir(remotePath, targetDir);
       }
@@ -731,7 +953,8 @@ async function handleDownloadTemplate(req, res) {
         }
 
         const opCachePath = getCachedTemplatePath(templateDir, "activity_op");
-        const usedOpCache = cacheAvailable && copyFromCache(opCachePath, firstOpTargetDir);
+        const usedOpCache =
+          cacheAvailable && copyFromCache(opCachePath, firstOpTargetDir);
         if (!usedOpCache) {
           await downloadGitHubDir(remoteOpPath, firstOpTargetDir);
         }
@@ -798,7 +1021,8 @@ async function handleDownloadTemplate(req, res) {
             templateDir,
             "activity_op_hot"
           );
-          const usedHotCache = cacheAvailable && copyFromCache(hotCachePath, firstHotTargetDir);
+          const usedHotCache =
+            cacheAvailable && copyFromCache(hotCachePath, firstHotTargetDir);
           if (!usedHotCache) {
             await downloadGitHubDir(remoteHotPath, firstHotTargetDir);
           }
@@ -923,16 +1147,27 @@ async function handleToPythonText(req, res) {
         );
       }
 
-      // 计算 Python 脚本和虚拟环境的绝对路径
-      // server.js 在 web-preview-cli/lib/ 目录下
-      // event 目录在项目根目录下
-      const scriptPath = path.resolve(__dirname, "../../event/add_activity.py");
-      const venvPath = path.resolve(__dirname, "../../event/myenv");
-      const projectRoot = path.resolve(__dirname, "../..");
+      // 准备 Python 环境
+      const envResult = await preparePythonEnv();
+      if (!envResult.success) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            data: {
+              code: 0,
+              message: "Python 环境准备失败",
+              error: envResult.error,
+            },
+          })
+        );
+      }
 
-      console.log(`项目根目录: ${projectRoot}`);
-      console.log(`Python脚本路径: ${scriptPath}`);
-      console.log(`虚拟环境路径: ${venvPath}`);
+      // 获取 Python 环境路径
+      const { eventDir, venvDir, pythonPath, scriptPath } = getPythonEnvPaths();
+
+      console.log(`Python 环境目录: ${eventDir}`);
+      console.log(`Python 脚本路径: ${scriptPath}`);
+      console.log(`虚拟环境路径: ${venvDir}`);
 
       // 检查路径是否存在
       if (!fs.existsSync(scriptPath)) {
@@ -949,32 +1184,29 @@ async function handleToPythonText(req, res) {
         );
       }
 
-      if (!fs.existsSync(venvPath)) {
-        console.error(`错误: 虚拟环境不存在 ${venvPath}`);
+      if (!fs.existsSync(pythonPath)) {
+        console.error(`错误: Python 解释器不存在 ${pythonPath}`);
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(
           JSON.stringify({
             data: {
               code: 0,
-              message: "Python虚拟环境不存在",
-              error: `找不到目录: ${venvPath}`,
+              message: "Python 解释器不存在",
+              error: `找不到文件: ${pythonPath}`,
             },
           })
         );
       }
 
-      // 使用 Shell 命令激活虚拟环境并执行 Python 脚本
+      // 使用 Python 解释器直接执行脚本
+      // 注意：脚本需要在 event 目录的父目录运行，因为它会检查 'event' 子目录是否存在
+      // 同时设置 PYTHONPATH 确保子进程能找到 config 模块
+      const parentDir = path.dirname(eventDir);
       const isWindows = process.platform === "win32";
-      let command;
-
-      if (isWindows) {
-        // Windows 环境
-        command = `cd "${projectRoot}" && "${venvPath}\\Scripts\\activate.bat" && python "${scriptPath}" ${data.id} "${data.name}" "${data.textUrl}"`;
-      } else {
-        // Unix/Mac 环境 - 注意使用正确的Python解释器路径
-        const pythonPath = path.join(venvPath, "bin", "python3");
-        command = `cd "${projectRoot}" && "${pythonPath}" "${scriptPath}" ${data.id} "${data.name}" "${data.textUrl}"`;
-      }
+      const pythonPathEnv = isWindows
+        ? `set PYTHONPATH=${eventDir} &&`
+        : `PYTHONPATH="${eventDir}"`;
+      const command = `cd "${parentDir}" && ${pythonPathEnv} "${pythonPath}" "${scriptPath}" ${data.id} "${data.name}" "${data.textUrl}"`;
 
       console.log(`执行命令: ${command}`);
 
@@ -1332,6 +1564,14 @@ module.exports = {
   clearCache,
   getCacheInfo,
   waitForCache,
+  // Python 环境
+  preparePythonEnv,
+  isPythonEnvReady,
+  getPythonEnvPaths,
+  EVENT_CACHE_DIR,
+  PYTHON_VENV_DIR,
+  EVENT_VERSION_FILE,
+  // 常量
   CACHE_DIR,
   VERSION_FILE,
   CREATE_PAGE_CACHE_FILE,
