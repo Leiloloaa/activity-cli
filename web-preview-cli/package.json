@@ -1,13 +1,14 @@
 {
   "name": "web-preview-cli",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "从 git 仓库下载网页并启动本地服务器预览",
   "main": "index.js",
   "bin": {
     "actweb": "./bin/cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm version patch --no-git-tag-version && npm pack"
   },
   "keywords": [
     "cli",
