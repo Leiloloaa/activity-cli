@@ -14,7 +14,7 @@ const GITHUB_REPO = "Leiloloaa/activity-cli";
 const GITHUB_BRANCH = "main";
 
 // 模板缓存目录
-const CACHE_DIR = path.join(os.homedir(), ".actweb-cache");
+const CACHE_DIR = path.join(os.homedir(), ".act-cache");
 const VERSION_FILE = path.join(CACHE_DIR, ".version");
 const TEMPLATE_PROJECTS = ["yoho", "hiyoo", "soulstar", "dramebit"];
 const TEMPLATE_TYPES = ["activity", "activity_op", "activity_op_hot"];

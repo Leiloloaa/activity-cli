@@ -1,4 +1,4 @@
-# Activity Web CLI (actweb)
+# Activity Web CLI (act)
 
 一个用于快速创建活动页面的命令行工具，支持从 GitHub 下载模板、本地预览、智能缓存等功能。
 
@@ -14,14 +14,14 @@ npm install -g ./web-preview-cli-1.0.0.tgz
 
 ## 命令
 
-### `actweb create`
+### `act create`
 
 启动 Activity 创建工具，打开一个表单页面用于创建活动项目。
 
 ```bash
-actweb create
-actweb create -p 8080        # 指定端口
-actweb create --no-open      # 不自动打开浏览器
+act create
+act create -p 8080        # 指定端口
+act create --no-open      # 不自动打开浏览器
 ```
 
 **功能：**
@@ -30,20 +30,20 @@ actweb create --no-open      # 不自动打开浏览器
 - 自动生成 `config.ts` 配置文件
 - 支持下载 `activity`、`activity_op`、`activity_op_hot` 目录
 
-### `actweb cache`
+### `act cache`
 
 管理模板缓存。
 
 ```bash
-actweb cache           # 查看缓存状态
-actweb cache -v        # 查看缓存状态（同上）
-actweb cache -r        # 强制刷新缓存
-actweb cache -c        # 清除缓存
+act cache           # 查看缓存状态
+act cache -v        # 查看缓存状态（同上）
+act cache -r        # 强制刷新缓存
+act cache -c        # 清除缓存
 ```
 
 **输出示例：**
 ```
-📁 缓存目录: /Users/xxx/.actweb-cache
+📁 缓存目录: /Users/xxx/.act-cache
 📌 缓存版本: a1b2c3d
 ✓ 已缓存的项目:
   yoho: activity, activity_op, activity_op_hot
@@ -52,32 +52,32 @@ actweb cache -c        # 清除缓存
   dramebit: activity, activity_op, activity_op_hot
 ```
 
-### `actweb url <htmlUrl>`
+### `act url <htmlUrl>`
 
 从指定 URL 下载 HTML 文件并本地预览。
 
 ```bash
-actweb url https://example.com/page.html
-actweb url https://github.com/user/repo/blob/main/index.html
+act url https://example.com/page.html
+act url https://github.com/user/repo/blob/main/index.html
 ```
 
-### `actweb start`
+### `act start`
 
 从 Git 仓库下载网页并启动预览服务器。
 
 ```bash
-actweb start -r https://github.com/user/repo
-actweb start -r https://github.com/user/repo -b develop
+act start -r https://github.com/user/repo
+act start -r https://github.com/user/repo -b develop
 ```
 
-### `actweb update` (别名: `actweb u`)
+### `act update` (别名: `act u`)
 
 从 GitHub 下载最新源码并自动更新 CLI。
 
 ```bash
-actweb update       # 检查并更新到最新版本
-actweb u            # 简写形式
-actweb update -f    # 强制更新
+act update       # 检查并更新到最新版本
+act u            # 简写形式
+act update -f    # 强制更新
 ```
 
 **更新流程：**
@@ -90,7 +90,7 @@ actweb update -f    # 强制更新
 ```
 🔄 检查更新...
 
-临时目录: /tmp/actweb-update-1234567890
+临时目录: /tmp/act-update-1234567890
 📥 下载最新源码...
 ✓ 源码下载完成
 📦 打包中...
@@ -99,18 +99,18 @@ actweb update -f    # 强制更新
 ✓ 安装完成
 
 ✅ 更新成功！
-运行 'actweb --version' 查看新版本
+运行 'act --version' 查看新版本
 ```
 
-### `actweb config`
+### `act config`
 
 管理配置。
 
 ```bash
-actweb config              # 查看当前配置
-actweb config -s <repo>    # 设置默认仓库
-actweb config -b <branch>  # 设置默认分支
-actweb config -d           # 删除配置
+act config              # 查看当前配置
+act config -s <repo>    # 设置默认仓库
+act config -b <branch>  # 设置默认分支
+act config -d           # 删除配置
 ```
 
 ## 缓存机制
@@ -119,7 +119,7 @@ actweb config -d           # 删除配置
 
 为了加快模板下载速度，工具实现了智能缓存机制：
 
-1. **预缓存**：运行 `actweb create` 时，后台自动预下载所有项目模板和创建页面 HTML
+1. **预缓存**：运行 `act create` 时，后台自动预下载所有项目模板和创建页面 HTML
 2. **版本控制**：通过 GitHub commit SHA 检测模板更新
 3. **自动更新**：检测到远程模板更新时，自动刷新缓存
 4. **进度显示**：下载时实时显示下载进度
@@ -142,7 +142,7 @@ actweb config -d           # 删除配置
 ### 缓存目录结构
 
 ```
-~/.actweb-cache/
+~/.act-cache/
 ├── .version              # 版本标识（commit SHA）
 ├── yoho/
 │   ├── activity/         # 主活动模板
@@ -159,7 +159,7 @@ actweb config -d           # 删除配置
 ### 缓存工作流程
 
 ```
-启动 actweb create
+启动 act create
        ↓
   获取远程版本 (commit SHA)
        ↓
@@ -212,7 +212,7 @@ await preparePythonEnv(true);
 const info = getCacheInfo();
 console.log(info);
 // {
-//   cacheDir: '/Users/xxx/.actweb-cache',
+//   cacheDir: '/Users/xxx/.act-cache',
 //   exists: true,
 //   version: 'abc123...',
 //   projects: [
@@ -318,7 +318,7 @@ clearCache();
 const info = getCacheInfo();
 console.log(info);
 // {
-//   cacheDir: '/Users/xxx/.actweb-cache',
+//   cacheDir: '/Users/xxx/.act-cache',
 //   exists: true,
 //   version: 'a1b2c3d...',
 //   projects: [

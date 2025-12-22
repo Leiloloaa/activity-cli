@@ -1,10 +1,10 @@
 {
   "name": "web-preview-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "从 git 仓库下载网页并启动本地服务器预览",
   "main": "index.js",
   "bin": {
-    "actweb": "./bin/cli.js"
+    "act": "./bin/cli.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

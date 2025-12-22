@@ -32,7 +32,7 @@ const ACTIVITY_CREATE_URL =
 const packageJson = require("../package.json");
 
 program
-  .name("actweb")
+  .name("act")
   .description(
     "Activity Web CLI - 从 git 仓库或 URL 下载网页并启动本地服务器预览"
   )
@@ -87,7 +87,7 @@ program
           console.error(chalk.red("错误: 未指定仓库地址"));
           console.log(
             chalk.yellow(
-              '提示: 使用 "actweb config -s <仓库地址>" 设置默认仓库，或使用 "-r" 参数指定'
+              '提示: 使用 "act config -s <仓库地址>" 设置默认仓库，或使用 "-r" 参数指定'
             )
           );
           process.exit(1);
@@ -207,10 +207,10 @@ program
         }
       } else {
         console.log(
-          chalk.yellow("缓存目录不存在，运行 'actweb create' 时会自动创建")
+          chalk.yellow("缓存目录不存在，运行 'act create' 时会自动创建")
         );
       }
-      console.log(chalk.gray("\n提示: 使用 'actweb cache -r' 强制刷新缓存"));
+      console.log(chalk.gray("\n提示: 使用 'act cache -r' 强制刷新缓存"));
     }
   });
 
@@ -225,7 +225,7 @@ program
       console.log(chalk.cyan("\n🔄 检查更新...\n"));
 
       // 创建临时目录
-      const tempDir = path.join(os.tmpdir(), `actweb-update-${Date.now()}`);
+      const tempDir = path.join(os.tmpdir(), `act-update-${Date.now()}`);
       const cliTempDir = path.join(tempDir, CLI_DIR_NAME);
 
       console.log(chalk.gray(`临时目录: ${tempDir}`));
@@ -271,7 +271,7 @@ program
       fs.rmSync(tempDir, { recursive: true, force: true });
 
       console.log(chalk.green("\n✅ 更新成功！"));
-      console.log(chalk.gray("运行 'actweb --version' 查看新版本"));
+      console.log(chalk.gray("运行 'act --version' 查看新版本"));
     } catch (error) {
       console.error(chalk.red("\n❌ 更新失败:"), error.message);
       process.exit(1);
