@@ -14,6 +14,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/home',
     name: 'home',
+    component: Home,
     children: [
       {
         path: 'rank',
@@ -31,6 +32,11 @@ const routes: Array<RouteRecordRaw> = [
             component: RankAnchor
           }
         ]
+      },
+      {
+        path: 'rule',
+        name: 'rule',
+        component: Rule
       }
     ]
   }

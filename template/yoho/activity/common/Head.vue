@@ -55,7 +55,6 @@
 
 <script lang="ts" setup name="Head">
 import injectTool from '@publicComponents/injectTool'
-import { isWebView } from '../tools/plat.js'
 // import { searchActivityTime } from '@hooks/useHeadUtils'
 
 const ossUrl = inject('ossUrl')
@@ -119,7 +118,7 @@ const onImageError = () => {
 }
 
 const isMuted = computed(() => {
-  return PROJECT == 2 || (isWebView ? false : true)
+  return PROJECT == 2
 })
 
 const isWebp = '?x-oss-process=image/format,webp/quality,Q_80'

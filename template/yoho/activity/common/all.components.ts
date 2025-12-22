@@ -28,7 +28,7 @@ const asyncComponents = {
 
   // GiftReward 组件
   GRSwiper: () => import('./GiftReward/GRSwiper.vue'),
-  GRToast: () => import('./GiftReward/GRToast.vue'),
+  GRPreview: () => import('./GiftReward/GRPreview.vue'),
 
   // 榜单组件
   TabsDate: () => import('./Tabs/TabsDate.vue'),

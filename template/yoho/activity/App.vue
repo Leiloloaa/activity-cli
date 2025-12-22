@@ -26,7 +26,7 @@
       }"
       isVideo
     >
-      <GRToast :resource="appInfo.rewardResource" />
+      <GRPreview :resource="appInfo.rewardResource" />
     </Dialog>
   </div>
 </template>
