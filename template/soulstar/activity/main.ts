@@ -20,7 +20,7 @@ const pretreatment = new Pretreatment(app, countryList);
 
 pretreatment.init().then(({ profile, LANG }) => {
 	app.use(router).use(animate).use(developTool, {
-		activityId:config.activityId,
+		activityId: config.activityId,
 		countryCode: LANG,
 		moduleVersion: {
 			toast: 'v2',
@@ -40,7 +40,7 @@ pretreatment.init().then(({ profile, LANG }) => {
 			},
 			// 图片资源文件名
 			image: {
-				p config.projectName
+				p: config.projectName
 			}
 		}
 	})

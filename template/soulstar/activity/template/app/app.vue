@@ -1,6 +1,5 @@
 <template>
     <div class="wrap">
-        <h2>[soulstar-activity-h5] 项目模板</h2>
         <RouterView />
     </div>
 </template>

@@ -1,5 +1,5 @@
 @forward '@library/styles/mixin.scss' as globalMixin-*;
-$projectName : <%- JSON.stringify(uiImg) %>;
+$projectName : <%- JSON.stringify(projectName) %>;
 
 @mixin bg($imgName, $isImport: false, $w: 100%, $h: 100%, $x: 0, $y: 0, $repeat: no-repeat) {
     background-image: url('#{fnGetDomain("image")}/#{$projectName}/#{$imgName}.png') if($isImport, !important, null);
