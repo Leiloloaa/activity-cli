@@ -1,15 +1,59 @@
 <template>
   <div class="rule">
-    <div class="rule-tabs"><TabsRule v-model="ruleTab" /></div>
+    <div class="rule-tabs">
+      <div
+        class="tabs-component"
+        v-for="(item, index) in [602, 603]"
+        :key="'tab' + item"
+      >
+        <div
+          class="tab fc"
+          :class="`${actTab == index ? 'act' : ''} tab${index}`"
+          @click="switchTab(index)"
+          v-bg="`actTab == index ? 'tab-act' : 'tab`"
+        >
+          <Outline :color="`0.05rem #77220B`" :text="TOOL_TEXT[item]" noColor />
+        </div>
+      </div>
+    </div>
 
-    <GRSwiper :type="ruleTab == 0 ? 'gift' : 'reward'" :listConfig="listConfig" />
+    <GRSwiper
+      :type="ruleTab == 0 ? 'gift' : 'reward'"
+      :listConfig="listConfig"
+    />
 
-    <div v-show="ruleTab == 1" class="reward-tabs"><TabsReward v-model="rewardTab" /></div>
+    <div
+      v-show="ruleTab == 1"
+      class="reward-tabs scrollX"
+      ref="rewardScrollRef"
+    >
+      <div class="reward-tabs-inner">
+        <div
+          class="reward-tabs-component"
+          v-for="(item, index) in rewardTabList"
+          :key="'reward-tab' + item"
+          ref="rewardListItemRef"
+        >
+          <div
+            class="tab fc"
+            :class="`${rewardTab == index ? 'act' : ''} tab${index}`"
+            @click="switchRewardTab(index)"
+            v-bg="`${rewardTab == index ? 'reward-tab-act' : 'reward-tab'}`"
+          >
+            <Outline
+              :color="`0.05rem #77220B`"
+              :text="TOOL_TEXT[item]"
+              noColor
+            />
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="rule-content">
       <img
         :key="`index_${ruleIndex}`"
-        :src="`//cdn${addTest}.${domain}.media/${rule[`index_${ruleIndex}`]}`"
+        :src="`//${appInfo.cdn}/${TOOL_RULE()[`index_${ruleIndex}`]}`"
         :alt="'rule_' + ruleIndex"
       />
     </div>
@@ -17,106 +61,67 @@
 </template>
 
 <script lang="ts" setup name="Rule">
-import injectTool from '@publicComponents/injectTool'
+import injectTool from "@publicComponents/injectTool";
+import { scrollFn } from "../tools/tools.js";
 
-const route = useRoute()
-const router = useRouter()
-const domain = PROJECT == 1 ? 'waka' : 'chatchill'
-const addTest = ENV == 'build' ? '' : '-test'
-const { TOOL_BPFunc, TOOL_countryCode, TOOL_TEXT, TOOL_RULE } = injectTool()
-TOOL_BPFunc({ desc: 'rule_page', action: 'show' }) //固定不变，勿删
-const rule = computed(() => TOOL_RULE())
+const route = useRoute();
+const router = useRouter();
+const appInfo = inject("appInfo");
+const { TOOL_BPFunc, TOOL_countryCode, TOOL_TEXT, TOOL_RULE } = injectTool();
+TOOL_BPFunc({ desc: "rule_page", action: "show" }); //固定不变，勿删
 
-const listConfig = computed(() => {
-  if (TOOL_countryCode == 'TR') {
-    return [
-      {
-        range: ['1-2'],
-        prefix: 'reward-',
-        playIcon: false,
-        suffix: 'webp'
-      },
-      {
-        range: ['3-4'],
-        prefix: 'reward-',
-        playIcon: false,
-        suffix: 'png'
-      },
-      {
-        range: ['5-12'],
-        prefix: 'reward-',
-        playIcon: false,
-        suffix: 'webp'
-      },
-      {
-        range: ['13-14'],
-        prefix: 'reward-',
-        playIcon: false,
-        suffix: 'png'
-      },
-      {
-        range: ['15'],
-        prefix: 'reward-',
-        playIcon: true,
-        suffix: 'png'
-      },
-      {
-        range: ['16-18'],
-        prefix: 'reward-',
-        playIcon: false,
-        suffix: 'png'
-      }
-    ]
-  } else {
-    return [
-      {
-        range: ['1-2'],
-        prefix: 'rew-img-hiyoo',
-        playIcon: false,
-        suffix: 'webp'
-      },
-      {
-        range: ['3-4'],
-        prefix: 'rew-img-hiyoo',
-        playIcon: false,
-        suffix: 'png'
-      },
-      {
-        range: ['5-12'],
-        prefix: 'rew-img-hiyoo',
-        playIcon: false,
-        suffix: 'webp'
-      },
-      {
-        range: ['13-14'],
-        prefix: 'rew-img-hiyoo',
-        playIcon: false,
-        suffix: 'png'
-      },
-      {
-        range: ['15'],
-        prefix: 'rew-img-hiyoo',
-        playIcon: true,
-        suffix: 'png'
-      }
-    ]
-  }
-})
+const ruleTab = ref<number>(0);
+const rewardTab = ref<number>(0);
+const ruleIndex = computed(() => (ruleTab.value == 0 ? 1 : 2));
 
-const ruleTab = ref<number>(0)
-const rewardTab = ref<number>(0)
+// reward tabs 滚动相关
+const rewardTabList = [173, 174, 175];
+const rewardScrollRef = ref(null);
+const rewardListItemRef = ref(null);
+const rewardScrollFnIndex = (index: number, type = "") => {
+  scrollFn(
+    rewardScrollRef.value,
+    rewardListItemRef.value,
+    `x${type}`,
+    rewardTabList,
+    index
+  );
+};
 
-const ruleIndex = computed(() =>
-  ruleTab.value == 0 ? 1 : rewardTab.value == 0 ? 2 : 2 + rewardTab.value
-)
+const switchTab = (index: number) => {
+  ruleTab.value = index;
+  TOOL_BPFunc({ desc: `rule_tab${index + 1}_click`, action: "click" });
+};
 
-const type = Number(route.params.type) || Number(route.query.type) || 0
+const switchRewardTab = (index: number) => {
+  rewardTab.value = index;
+  TOOL_BPFunc({ desc: `reward_page_tab${index + 1}_click`, action: "click" });
+  rewardScrollFnIndex(index);
+};
+
+const type = Number(route.params.type) || Number(route.query.type) || 0;
 onMounted(() => {
   if (type > 1) {
-    ruleTab.value = 1 // 跳转至奖励页
-    rewardTab.value = type - 2 // 选中指定Tab
+    ruleTab.value = 1; // 跳转至奖励页
+    rewardTab.value = type - 2; // 选中指定Tab
+    nextTick(() => {
+      const tabIndex = rewardTab.value;
+      const tabListLength = rewardTabList.length;
+      rewardScrollFnIndex(
+        tabIndex,
+        tabIndex == 0 || tabIndex == tabListLength - 1 ? "half" : "whole"
+      );
+    });
   }
-})
+});
+
+const listConfig = computed(() => {
+  if (TOOL_countryCode == "EG") {
+    return [];
+  } else {
+    return [];
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -132,13 +137,117 @@ onMounted(() => {
 
     position: relative;
     z-index: 1;
+
+    .tabs-component {
+      width: fit-content;
+      margin: 0 auto;
+
+      display: flex;
+      position: relative;
+      z-index: 1;
+      gap: 0.15rem;
+
+      .tab {
+        width: 2.54rem;
+        height: 1.24rem;
+        flex-shrink: 0;
+        // margin: 0 0.04rem;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        position: relative;
+        z-index: 1;
+
+        span {
+          width: 2.3rem;
+
+          color: #ff391f;
+          text-align: center;
+          font-family: "SF UI Text";
+          font-size: 0.24rem;
+          font-style: normal;
+          font-weight: 600;
+          line-height: 0.26rem; /* 108.333% */
+
+          position: relative;
+          z-index: 2;
+        }
+
+        &.act {
+          span {
+            color: #6e0000;
+            text-align: center;
+            font-family: "SF UI Text";
+            font-size: 0.26rem;
+            font-style: normal;
+            font-weight: 600;
+            line-height: 0.28rem; /* 107.692% */
+          }
+        }
+      }
+    }
   }
 
   .reward-tabs {
-    margin-top: 0.06rem;
+    width: 7.5rem;
+    margin: 0.4rem auto 0;
 
     position: relative;
     z-index: 1;
+
+    .reward-tabs-inner {
+      width: fit-content;
+      margin: 0 auto;
+
+      display: flex;
+      position: relative;
+      z-index: 1;
+
+      .reward-tabs-component {
+        .tab {
+          width: 2.04rem;
+          height: 0.72rem;
+          flex-shrink: 0;
+          margin: 0 0.12rem;
+
+          display: flex;
+          justify-content: center;
+          align-items: center;
+
+          position: relative;
+          z-index: 1;
+
+          span {
+            width: 2.24rem;
+
+            color: #5ef8b8;
+            text-align: center;
+            font-family: "SF UI Text";
+            font-size: 0.24rem;
+            font-style: normal;
+            font-weight: 600;
+            line-height: 0.3rem;
+
+            position: absolute;
+            z-index: 1;
+          }
+
+          &.act {
+            span {
+              color: #c45c00;
+              text-align: center;
+              font-family: "SF UI Text";
+              font-size: 0.24rem;
+              font-style: normal;
+              font-weight: 600;
+              line-height: 0.28rem;
+            }
+          }
+        }
+      }
+    }
   }
 
   .rule-content {

@@ -16,12 +16,16 @@
         >
           <img
             class="obg"
-            :src="`${ossUrl}/${curRouteName == item.name ? 'tab-act' : 'tab'}.png`"
+            :src="`${ossUrl}/${
+              curRouteName == item.name ? 'tab-act' : 'tab'
+            }.png`"
             alt=""
           />
 
           <Outline
-            :color="`0.05rem ${curRouteName == item.name ? '#094e01' : '#094e01'}`"
+            :color="`0.05rem ${
+              curRouteName == item.name ? '#094e01' : '#094e01'
+            }`"
             :text="item.text"
             class="text fc"
             noColor
@@ -33,60 +37,80 @@
 </template>
 
 <script lang="ts" setup name="TabsMainCp">
-import injectTool from '@publicComponents/injectTool'
-import { scrollFn } from '../../tools/dateFunc.js'
-import { getChildrenWithText } from '../../tools/tab.js'
+import injectTool from "@publicComponents/injectTool";
+import { scrollFn, getChildrenWithText } from "../tools/tools.js";
 
-const route = useRoute()
-const router = useRouter()
-const ossUrl = inject('ossUrl')
-const { TOOL_TEXT, TOOL_countryCode, TOOL_BPFunc } = injectTool()
+const route = useRoute();
+const router = useRouter();
+const ossUrl = inject("ossUrl");
+const { TOOL_TEXT, TOOL_countryCode, TOOL_BPFunc } = injectTool();
 
 const props = defineProps({
   fatherRoute: {
     type: [Number, String],
-    default: 'home'
+    default: "home",
   },
   text: {
     type: Array,
-    default: [8, 9, 3, 6, 7]
-  }
-})
+    default: [8, 9, 3, 6, 7],
+  },
+});
 
-const isHideRule = 1 // 屏蔽rule
-const hideTabIndex: any = computed(() => (['EG'].includes(TOOL_countryCode) ? [] : [])) // 通过index过滤Tab
-const hideTabName: any = computed(() => (['EG'].includes(TOOL_countryCode) ? [] : [])) // 通过name过滤Tab
+const isHideRule = 1; // 屏蔽rule
+const hideTabIndex: any = computed(() =>
+  ["EG"].includes(TOOL_countryCode) ? [] : []
+); // 通过index过滤Tab
+const hideTabName: any = computed(() =>
+  ["EG"].includes(TOOL_countryCode) ? [] : []
+); // 通过name过滤Tab
 
-const scrollRef = ref(null)
-const listItemRef = ref(null)
-const scrollFnIndex = (index, type = '') => {
-  scrollFn(scrollRef.value, listItemRef.value, `x${type}`, tabList.value, index)
-}
+const scrollRef = ref(null);
+const listItemRef = ref(null);
+const scrollFnIndex = (index, type = "") => {
+  scrollFn(
+    scrollRef.value,
+    listItemRef.value,
+    `x${type}`,
+    tabList.value,
+    index
+  );
+};
 
-const filterList = [] // 在路由中过滤
-const routesList = router.getRoutes()
+const filterList = []; // 在路由中过滤
+const routesList = router.getRoutes();
 const tabList = computed(() =>
-  getChildrenWithText(props?.fatherRoute, routesList, filterList, TOOL_TEXT, props.text)
-)
+  getChildrenWithText(
+    props?.fatherRoute,
+    routesList,
+    filterList,
+    TOOL_TEXT,
+    props.text
+  )
+);
 
 const curRouteName = computed(() => {
-  let name = ''
-  route?.path?.split('/').forEach((item, index, self) => {
-    if (item == props?.fatherRoute) name = self?.[index + 1]
-  })
-  return name
-})
+  let name = "";
+  route?.path?.split("/").forEach((item, index, self) => {
+    if (item == props?.fatherRoute) name = self?.[index + 1];
+  });
+  return name;
+});
 
 const switchTab = (name, index) => {
-  TOOL_BPFunc({ desc: `main_tab${index + 1}_click`, action: 'click' }) //固定不变，勿删
-  if (curRouteName.value != name) router.replace({ name })
-  scrollFnIndex(index)
-}
+  TOOL_BPFunc({ desc: `main_tab${index + 1}_click`, action: "click" }); //固定不变，勿删
+  if (curRouteName.value != name) router.replace({ name });
+  scrollFnIndex(index);
+};
 
 onMounted(() => {
-  const tabIndex = tabList.value.findIndex((item) => item.name == curRouteName.value)
-  scrollFnIndex(tabIndex, tabIndex == 0 || tabIndex == tabList.value.length - 1 ? 'half' : 'whole')
-})
+  const tabIndex = tabList.value.findIndex(
+    (item) => item.name == curRouteName.value
+  );
+  scrollFnIndex(
+    tabIndex,
+    tabIndex == 0 || tabIndex == tabList.value.length - 1 ? "half" : "whole"
+  );
+});
 </script>
 
 <style lang="scss" scoped>
@@ -123,7 +147,7 @@ onMounted(() => {
 
         color: #ff391f;
         text-align: center;
-        font-family: 'SF UI Text';
+        font-family: "SF UI Text";
         font-size: 0.24rem;
         font-style: normal;
         font-weight: 600;
@@ -137,7 +161,7 @@ onMounted(() => {
         span {
           color: #6e0000;
           text-align: center;
-          font-family: 'SF UI Text';
+          font-family: "SF UI Text";
           font-size: 0.26rem;
           font-style: normal;
           font-weight: 600;

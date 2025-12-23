@@ -58,7 +58,7 @@
 <script lang="ts" setup name="GiftSwiperFrame">
 import injectTool from "@publicComponents/injectTool";
 import { handleLoadMp4 } from "@publicComponents/shared";
-import { getRewardList } from "../../tools/getRewardList";
+import { getRewardList } from "../../tools/tools.js";
 
 // Swiper 原生导入
 import "swiper/swiper-bundle.css";

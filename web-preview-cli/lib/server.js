@@ -686,6 +686,43 @@ function copyFromCache(cachePath, targetPath) {
 }
 
 /**
+ * 处理 soulstar 模板中的 mixin.scss 文件
+ * 替换模板字符串 <%- JSON.stringify(projectName) %> 为实际的活动路径名
+ * @param {string} targetDir - 目标目录
+ * @param {string} activityPath - 活动路径名 (如 "202501_ActivityName")
+ */
+function processSoulstarMixinScss(targetDir, activityPath) {
+  // 递归查找所有 mixin.scss 文件
+  function findMixinScssFiles(dir, files = []) {
+    const items = fs.readdirSync(dir);
+    for (const item of items) {
+      const itemPath = path.join(dir, item);
+      const stat = fs.statSync(itemPath);
+      if (stat.isDirectory()) {
+        findMixinScssFiles(itemPath, files);
+      } else if (item === "mixin.scss") {
+        files.push(itemPath);
+      }
+    }
+    return files;
+  }
+
+  const mixinFiles = findMixinScssFiles(targetDir);
+
+  for (const filePath of mixinFiles) {
+    let content = fs.readFileSync(filePath, "utf8");
+    // 替换模板字符串
+    if (content.includes("<%- JSON.stringify(projectName) %>")) {
+      content = content.replace(
+        /<%- JSON\.stringify\(projectName\) %>/g,
+        JSON.stringify(activityPath)
+      );
+      fs.writeFileSync(filePath, content, "utf8");
+    }
+  }
+}
+
+/**
  * 首字母大写
  */
 function capitalizeFirstLetter(str) {
@@ -821,8 +858,13 @@ ${config.figma || ""}
       jenkinsJob: "hiyoo",
     },
     SoulStar: {
-      ossBucket: "soulstar-activity-www",
+      ossBucket: "dopa-activity-h5",
+      ossPath: "ActivityProjectStatic%2Fimage",
       jenkinsJob: "soulstar",
+      testJenkinsUrl:
+        "https://jenkins-web.micoplatform.com/job/dopa/job/TestEnv/job/soulstar-activity-h5/build?delay=0sec",
+      prodJenkinsUrl:
+        "https://jenkins-web.micoplatform.com/job/dopa/job/ProdEnv/job/soulstar-activity-h5/build?delay=0sec",
     },
     DramaBit: {
       ossBucket: "dramebit-activity-www",
@@ -832,16 +874,23 @@ ${config.figma || ""}
 
   const currentConfig = projectConfigs[projectName] || projectConfigs.Yoho;
 
+  const ossBasePath = currentConfig.ossPath || "activity";
   const ossLink = `export const ossLink = \`
-https://oss.console.aliyun.com/bucket/oss-ap-southeast-1/${currentConfig.ossBucket}/object/upload?path=activity%2F${activityPath}%2F
+https://oss.console.aliyun.com/bucket/oss-ap-southeast-1/${currentConfig.ossBucket}/object/upload?path=${ossBasePath}%2F${activityPath}%2F
 \``;
 
+  const testJenkinsUrl =
+    currentConfig.testJenkinsUrl ||
+    `https://jenkins-web.waka.media/job/${currentConfig.jenkinsJob}/job/TestEnv/job/web-activity/job/activity-vite/build?delay=0sec`;
   const testJenkinsLink = `export const testJenkinsLink = \`
-https://jenkins-web.waka.media/job/${currentConfig.jenkinsJob}/job/TestEnv/job/web-activity/job/activity-vite/build?delay=0sec
+${testJenkinsUrl}
 \``;
 
+  const prodJenkinsUrl =
+    currentConfig.prodJenkinsUrl ||
+    `https://jenkins-web.waka.media/job/${currentConfig.jenkinsJob}/job/ProdEnv/job/web-activity/job/activity-vite/build?delay=0sec`;
   const prodJenkinsLink = `export const prodJenkinsLink = \`
-https://jenkins-web.waka.media/job/${currentConfig.jenkinsJob}/job/ProdEnv/job/web-activity/job/activity-vite/build?delay=0sec
+${prodJenkinsUrl}
 \``;
 
   return `export const config = {
@@ -890,6 +939,31 @@ async function handleDownloadTemplate(req, res) {
         DramaBit: "dramebit",
       };
 
+      // 项目目录名称映射
+      const projectDirMap = {
+        Yoho: "activity-vite",
+        Hiyoo: "activity-vite",
+        SoulStar: "webpackProject_Vue3",
+        DramaBit: "miniepisode-activity-h5",
+      };
+
+      // 检查当前目录是否符合预期
+      const expectedDir = projectDirMap[projectName];
+      const currentDir = path.basename(process.cwd());
+      if (expectedDir && currentDir !== expectedDir) {
+        console.log(chalk.red(`\n❌ 目录不匹配！`));
+        console.log(chalk.red(`   当前目录: ${currentDir}`));
+        console.log(chalk.red(`   预期目录: ${expectedDir}`));
+        console.log(chalk.yellow(`   请在正确的项目目录下运行此命令\n`));
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            success: false,
+            message: `目录不匹配！当前目录是 ${currentDir}，但 ${projectName} 项目应该在 ${expectedDir} 目录下`,
+          })
+        );
+      }
+
       const templateDir = templateMap[projectName] || "yoho";
       const remotePath = `template/${templateDir}/activity`;
       const catalog = data.catalog || "202501";
@@ -923,6 +997,12 @@ async function handleDownloadTemplate(req, res) {
         cacheAvailable && copyFromCache(activityCachePath, targetDir);
       if (!usedCache) {
         await downloadGitHubDir(remotePath, targetDir);
+      }
+
+      // 处理 soulstar 模板的 mixin.scss 文件
+      const activityPath = `${catalog}_${capitalizeFirstLetter(activityName)}`;
+      if (templateDir === "soulstar") {
+        processSoulstarMixinScss(targetDir, activityPath);
       }
 
       // 处理提测信息
@@ -959,6 +1039,14 @@ async function handleDownloadTemplate(req, res) {
           await downloadGitHubDir(remoteOpPath, firstOpTargetDir);
         }
 
+        // 处理 soulstar 模板的 mixin.scss 文件
+        if (templateDir === "soulstar") {
+          const firstOpPath = `${catalog}_${capitalizeFirstLetter(
+            firstOpDirName
+          )}`;
+          processSoulstarMixinScss(firstOpTargetDir, firstOpPath);
+        }
+
         // 重写第一个目录的 config.ts
         const firstOpData = { ...data, name: firstOpDirName };
         const firstOpConfigPath = path.join(firstOpTargetDir, "config.ts");
@@ -983,6 +1071,12 @@ async function handleDownloadTemplate(req, res) {
 
           // 本地复制目录
           fs.cpSync(firstOpTargetDir, opTargetDir, { recursive: true });
+
+          // 处理 soulstar 模板的 mixin.scss 文件
+          if (templateDir === "soulstar") {
+            const opPath = `${catalog}_${capitalizeFirstLetter(opDirName)}`;
+            processSoulstarMixinScss(opTargetDir, opPath);
+          }
 
           // 重写 config.ts
           const opData = { ...data, name: opDirName };
@@ -1027,6 +1121,14 @@ async function handleDownloadTemplate(req, res) {
             await downloadGitHubDir(remoteHotPath, firstHotTargetDir);
           }
 
+          // 处理 soulstar 模板的 mixin.scss 文件
+          if (templateDir === "soulstar") {
+            const firstHotPath = `${catalog}_${capitalizeFirstLetter(
+              firstHotDirName
+            )}`;
+            processSoulstarMixinScss(firstHotTargetDir, firstHotPath);
+          }
+
           // 重写第一个目录的 config.ts
           const firstHotData = { ...data, name: firstHotDirName };
           const firstHotConfigPath = path.join(firstHotTargetDir, "config.ts");
@@ -1051,6 +1153,12 @@ async function handleDownloadTemplate(req, res) {
 
             // 本地复制目录
             fs.cpSync(firstHotTargetDir, hotTargetDir, { recursive: true });
+
+            // 处理 soulstar 模板的 mixin.scss 文件
+            if (templateDir === "soulstar") {
+              const hotPath = `${catalog}_${capitalizeFirstLetter(hotDirName)}`;
+              processSoulstarMixinScss(hotTargetDir, hotPath);
+            }
 
             // 重写 config.ts
             const hotData = { ...data, name: hotDirName };

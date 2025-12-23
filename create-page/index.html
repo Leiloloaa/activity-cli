@@ -310,11 +310,20 @@
 
             loading.value = true;
             try {
+              // SoulStar 项目首字母大写，其他项目首字母小写
+              const formatName = (name, projectName) => {
+                if (!name) return name;
+                if (projectName === "SoulStar") {
+                  return name.charAt(0).toUpperCase() + name.slice(1);
+                }
+                return name.charAt(0).toLowerCase() + name.slice(1);
+              };
+
               const res = await axios.post(
                 "http://localhost:3000/download-template",
                 {
                   projectName: form.projectName,
-                  name: form.name,
+                  name: formatName(form.name, form.projectName),
                   id: form.id,
                   url: form.url,
                   textUrl: form.textUrl,

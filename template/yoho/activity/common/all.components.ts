@@ -18,19 +18,11 @@ const asyncComponents = {
   Timer: () => import("./Timer.vue"),
   RuleBtn: () => import("./RuleBtn.vue"),
   RankFrame: () => import("./RankFrame.vue"),
-
-  // Tabs 组件
-  TabsMain: () => import("./Tabs/TabsMain.vue"),
-  TabsRank: () => import("./Tabs/TabsRank.vue"),
-  TabsRule: () => import("./Tabs/TabsRule.vue"),
-  TabsReward: () => import("./Tabs/TabsReward.vue"),
+  TabsMain: () => import("./TabsMain.vue"),
 
   // GiftReward 组件
   GRSwiper: () => import("./GiftReward/GRSwiper.vue"),
   GRPreview: () => import("./GiftReward/GRPreview.vue"),
-
-  // 榜单组件
-  TabsDate: () => import("./Tabs/TabsDate.vue"),
 };
 
 export default (Vue: any) => {
