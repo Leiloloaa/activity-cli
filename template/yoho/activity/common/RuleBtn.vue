@@ -10,30 +10,28 @@
 
 <script lang="ts" setup name="RuleBtn">
 import injectTool from '@publicComponents/injectTool'
+import { useAppStore } from '../store'
 
 const route = useRoute()
 const router = useRouter()
-const appInfo = inject('appInfo')
+const appStore = useAppStore()
 const { TOOL_countryCode, TOOL_TEXT, TOOL_BPFunc, TOOL_httpClient } = injectTool()
 
 const toRule = () => {
   if (route.path.includes('rule')) {
     TOOL_BPFunc({ desc: 'back_button_click', action: 'click' }) //固定不变，勿删
-    // console.log('window?.history?.state?.back========', window?.history?.state?.back)
     if (window?.history?.state?.back) {
       router.go(-1)
     } else {
-      // console.log('appInfo.historyBack',appInfo.historyBack)
-      if (appInfo.historyBack == 'home') {
+      if (appStore.historyBack == 'home') {
         router.replace('/home')
       } else {
-        router.replace({ name: appInfo.historyBack })
+        router.replace({ name: appStore.historyBack })
       }
     }
   } else {
     TOOL_BPFunc({ desc: 'rule_button_click', action: 'click' }) //固定不变，勿删
-    // console.log('route.name=========', route.name)
-    appInfo.historyBack = route.name // 记录点击rule按钮前的路由
+    appStore.historyBack = route.name // 记录点击rule按钮前的路由
     router.replace({ name: 'rule' })
   }
 }

@@ -413,22 +413,38 @@
 
 ---
 
-## 全局注入
+## 全局状态 (Pinia Store)
 
-通过 `inject` 获取全局变量：
+通过 `useAppStore` 获取全局状态：
 
 ```typescript
-const appInfo = inject('appInfo')      // 全局状态
-const ossUrl = inject('ossUrl')        // OSS 图片地址
-const getRew = inject('getRew')        // 奖励解析函数
-const activityId = inject('activityId') // 活动ID
+import { useAppStore } from "../store";
+const appStore = useAppStore();
 ```
 
-**appInfo 属性：**
+**appStore 属性：**
 
 | 属性               | 类型     | 说明                     |
 | ------------------ | -------- | ------------------------ |
 | activityDownStatus | Number   | 活动状态：1=正常, 0=下线 |
 | backgroundColor    | String   | 页面背景色               |
 | showReward(item)   | Function | 显示奖励弹框             |
+| hideReward()       | Function | 隐藏奖励弹框             |
 | historyBack        | String   | 历史返回路由             |
+| routerHistory      | Array    | 路由历史记录             |
+| isShowReward       | Boolean  | 是否显示奖励弹框         |
+| rewardResource     | Object   | 当前奖励资源             |
+| yohoUi             | String   | yoho-ui 资源地址         |
+| domain             | String   | 域名                     |
+| oss                | String   | OSS 地址                 |
+| cdn                | String   | CDN 地址                 |
+
+## 全局注入
+
+通过 `inject` 获取其他全局变量：
+
+```typescript
+const ossUrl = inject('ossUrl')        // OSS 图片地址
+const getRew = inject('getRew')        // 奖励解析函数
+const activityId = inject('activityId') // 活动ID
+```

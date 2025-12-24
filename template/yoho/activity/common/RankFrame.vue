@@ -19,7 +19,7 @@
         </div>
       </slot>
       <!-- 中 -->
-      <Lazy :lazy="!lazy ? false : appInfo.routerHistory?.length == 1 ? true : lazy">
+      <Lazy :lazy="!lazy ? false : appStore.routerHistory?.length == 1 ? true : lazy">
         <div
           class="rank-middle"
           :style="{
@@ -57,7 +57,9 @@
 </template>
 
 <script lang="ts" setup name="RankFrame">
-const appInfo: any = inject('appInfo')
+import { useAppStore } from '../store'
+
+const appStore = useAppStore()
 const ossUrl = inject('ossUrl')
 
 const props = defineProps({

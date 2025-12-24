@@ -7,9 +7,19 @@
 <template>
   <teleport to="body">
     <div class="dialog-c" :style="{ zIndex: zIndex }">
-      <Component :is="isVideo ? `animate-${TOOL_countryCode == 'EG' ? 'l' : 'r'}` : 'animate-p'">
+      <Component
+        :is="
+          isVideo
+            ? `animate-${TOOL_countryCode == 'EG' ? 'l' : 'r'}`
+            : 'animate-p'
+        "
+      >
         <template #shade>
-          <div class="public-mask-bg" v-if="show" @click="close(hasMaskClose)"></div>
+          <div
+            class="public-mask-bg"
+            v-if="show"
+            @click="close(hasMaskClose)"
+          ></div>
         </template>
         <template #content>
           <div
@@ -19,7 +29,10 @@
             v-if="show"
           >
             <!-- 关闭按钮 -->
-            <div class="toast-box public-fixed-center" :class="{ live: isLiveBanner }">
+            <div
+              class="toast-box public-fixed-center"
+              :class="{ live: isLiveBanner }"
+            >
               <div class="panel">
                 <img
                   src="https://image.hoko.media/static/close.png"
@@ -27,7 +40,7 @@
                   @click="btnCloseFunc"
                   :style="isVideo ? videoClose : closeOpt"
                 />
-                <RankFrame :frame="frame" :title="title" :type="type"><slot></slot></RankFrame>
+                <slot></slot>
               </div>
             </div>
           </div>
@@ -38,128 +51,133 @@
 </template>
 
 <script lang="ts" setup name="Dialog">
-import { closeWindowScroll, isLiveBanner, openWindowScroll } from '@publicComponents/shared'
-import injectTool from '@publicComponents/injectTool'
-const { TOOL_countryCode } = injectTool()
+import {
+  closeWindowScroll,
+  isLiveBanner,
+  openWindowScroll,
+} from "@publicComponents/shared";
+import injectTool from "@publicComponents/injectTool";
+const { TOOL_countryCode } = injectTool();
 
 // 默认height为运营位时弹出的高度8rem
 const props = defineProps({
   modelValue: {
     type: Boolean,
-    default: false
+    default: false,
   },
   closeOpt: {
     type: Object,
     default: {
-      width: '0.72rem',
-      height: '0.72rem',
-      bottom: '-1rem'
-    }
+      width: "0.72rem",
+      height: "0.72rem",
+      bottom: "-1rem",
+    },
   },
   maskAlpha: {
     type: Number,
-    default: 0.6
+    default: 0.6,
   },
   hasMaskClose: {
     type: Boolean,
-    default: false
+    default: false,
   },
   allClose: {
     type: Boolean,
-    default: false
-  },
-  frame: {
-    type: Boolean,
-    default: false
+    default: false,
   },
   zIndex: {
     type: Number,
-    default: 100
+    default: 100,
   },
   isVideo: {
     type: Boolean,
-    default: false
+    default: false,
   },
   btnClose: {
     type: Boolean,
-    default: true
+    default: true,
   },
   subDialog: {
     type: Boolean,
-    default: false
+    default: false,
   },
   title: {
     type: String,
-    default: ''
+    default: "",
   },
   type: {
     // 榜单类型
     type: String,
-    default: 'dialog'
-  }
-})
+    default: "dialog",
+  },
+});
 
 const videoClose = {
-  width: '0.72rem',
-  height: '0.72rem',
-  left: '0.32rem',
-  top: '0.32rem'
-}
+  width: "0.72rem",
+  height: "0.72rem",
+  left: "0.32rem",
+  top: "0.32rem",
+};
 
 const toClose = () => {
   if (props.allClose) {
-    close(true)
+    close(true);
   }
-}
+};
 
-const emit = defineEmits(['update:modelValue', 'open', 'beforeClose', 'btnCloseFunc'])
+const emit = defineEmits([
+  "update:modelValue",
+  "open",
+  "beforeClose",
+  "btnCloseFunc",
+]);
 
 const btnCloseFunc = () => {
   if (props?.btnClose) {
-    close(true)
+    close(true);
   } else {
-    emit('btnCloseFunc')
+    emit("btnCloseFunc");
   }
-}
+};
 
 const show = computed({
   get() {
-    return props.modelValue
+    return props.modelValue;
   },
   set(value) {
-    emit('update:modelValue', value)
-  }
-})
+    emit("update:modelValue", value);
+  },
+});
 
 const showToast = () => {
   // console.log('dia-show')
-  closeWindowScroll()
-}
+  closeWindowScroll();
+};
 
 const close = (switchVal: boolean = true) => {
   // console.log('dia-close')
   if (switchVal) {
-    emit('beforeClose')
-    show.value = false
-    !props?.subDialog && openWindowScroll()
+    emit("beforeClose");
+    show.value = false;
+    !props?.subDialog && openWindowScroll();
   }
-}
+};
 
 watch(
   () => {
-    return show.value
+    return show.value;
   },
   () => {
     if (show.value) {
-      emit('open')
-      showToast()
+      emit("open");
+      showToast();
     } else {
-      close()
+      close();
     }
   }
-)
+);
 
-provide('close', close)
+provide("close", close);
 </script>
 
 <style lang="scss" scoped>

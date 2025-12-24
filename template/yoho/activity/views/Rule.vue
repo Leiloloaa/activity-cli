@@ -53,7 +53,7 @@
     <div class="rule-content">
       <img
         :key="`index_${ruleIndex}`"
-        :src="`//${appInfo.cdn}/${TOOL_RULE()[`index_${ruleIndex}`]}`"
+        :src="`//${appStore.cdn}/${TOOL_RULE()[`index_${ruleIndex}`]}`"
         :alt="'rule_' + ruleIndex"
       />
     </div>
@@ -63,10 +63,11 @@
 <script lang="ts" setup name="Rule">
 import injectTool from "@publicComponents/injectTool";
 import { scrollFn } from "../tools/tools.js";
+import { useAppStore } from "../store";
 
 const route = useRoute();
 const router = useRouter();
-const appInfo = inject("appInfo");
+const appStore = useAppStore();
 const { TOOL_BPFunc, TOOL_countryCode, TOOL_TEXT, TOOL_RULE } = injectTool();
 TOOL_BPFunc({ desc: "rule_page", action: "show" }); //固定不变，勿删
 

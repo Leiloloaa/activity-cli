@@ -10,6 +10,7 @@ import 'vant/lib/index.css'
 import '@publicComponents/index.scss' // 全局静态样式
 import './scss/index.scss'
 import { config } from './config'
+import { createPinia } from 'pinia'
 
 import pluginToWebp from 'plugin-to-webp'
 import components from './common/all.components'
@@ -39,6 +40,7 @@ pretreatment.init(false, router).then(({ LANG }) => {
   app
     .use(animate)
     .use(router)
+    .use(createPinia())
     .use(Toast)
     .use(List)
     .use(Sticky)

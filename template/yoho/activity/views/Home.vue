@@ -20,36 +20,41 @@
 </template>
 
 <script lang="ts" setup name="Home">
-import injectTool from '@publicComponents/injectTool'
-import { useTimer } from '@hooks/useTimer'
+import injectTool from "@publicComponents/injectTool";
+import { useTimer } from "@hooks/useTimer";
 
-import isDataRouter from '../tools/isDataRouter'
-import h5SourceBp from '../tools/h5SourceBp'
-import isDataBp from '../tools/isDataBp'
+import isDataRouter from "../tools/isDataRouter";
+import h5SourceBp from "../tools/h5SourceBp";
+import isDataBp from "../tools/isDataBp";
 
-const appInfo: any = inject('appInfo')
-const { TOOL_TEXT, TOOL_BPFunc, TOOL_httpClient, TOOL_loading, TOOL_countryCode } = injectTool()
-const { startTimer } = useTimer()
+const {
+  TOOL_TEXT,
+  TOOL_BPFunc,
+  TOOL_httpClient,
+  TOOL_loading,
+  TOOL_countryCode,
+} = injectTool();
+const { startTimer } = useTimer();
 
 const homeInfo = reactive({
   showHeadDesc: false, // 是否显示头部描述
-  showComponent: false // 是否显示组件
-})
+  showComponent: false, // 是否显示组件
+});
 
 onMounted(() => {
   // 延迟加载主体内容，优先让头图加载
   startTimer(() => {
-    homeInfo.showComponent = true
-  }, 300)
+    homeInfo.showComponent = true;
+  }, 300);
   // 延迟加载规则按钮等，优先让主体内容加载
   startTimer(() => {
-    homeInfo.showHeadDesc = true
-  }, 1500)
+    homeInfo.showHeadDesc = true;
+  }, 1500);
 
-  h5SourceBp()
-  isDataBp()
-  isDataRouter()
-})
+  h5SourceBp();
+  isDataBp();
+  isDataRouter();
+});
 </script>
 
 <style lang="scss" scoped>

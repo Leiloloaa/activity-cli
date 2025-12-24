@@ -59,6 +59,7 @@
 import injectTool from "@publicComponents/injectTool";
 import { handleLoadMp4 } from "@publicComponents/shared";
 import { getRewardList } from "../../tools/tools.js";
+import { useAppStore } from "../../store";
 
 // Swiper 原生导入
 import "swiper/swiper-bundle.css";
@@ -68,8 +69,7 @@ SwiperCore.use([Navigation, Pagination, Autoplay]);
 
 const ossUrl = inject("ossUrl");
 const activityId = inject("activityId");
-const appInfo: any = inject("appInfo");
-const showReward = appInfo.showReward;
+const appStore = useAppStore();
 const { TOOL_countryCode, TOOL_TEXT, TOOL_httpClient, TOOL_BPFunc, TOOL_NUM } =
   injectTool();
 
@@ -146,13 +146,13 @@ const getGiftList = async () => {
 const look = (item) => {
   if (item.playIcon) {
     if (item.playMp4Status == 2) {
-      showReward(item);
+      appStore.showReward(item);
       return;
     }
     const src = `${ossUrl}/${item.src.split(".")[0]}.mp4`;
-    handleLoadMp4(item, src, appInfo, () => showReward(item));
+    handleLoadMp4(item, src, appStore, () => appStore.showReward(item));
   } else if (props.type == "reward") {
-    showReward(item);
+    appStore.showReward(item);
   }
 };
 
