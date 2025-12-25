@@ -79,7 +79,7 @@ def extract_doc_id(feishu_url):
     print(f"无法提取文档ID，将使用完整URL: {feishu_url}")
     return feishu_url
 
-def update_activity_config(activity_id, activity_name, feishu_url):
+def update_activity_config(activity_id, activity_name, feishu_url, project_name="Yoho"):
     """更新activity_config.py文件，添加新的活动配置"""
     config_path = os.path.join("event", "config", "activity_config.py")
     
@@ -100,10 +100,18 @@ def update_activity_config(activity_id, activity_name, feishu_url):
         doc_id = extract_doc_id(feishu_url)
         print(f"从URL提取的文档ID: {doc_id}")
         
-        # 检查活动ID类型确定平台
-        activity_id_int = int(activity_id)
-        is_chatchill = activity_id_int >= 20000
-        print(f"活动平台: {'Chatchill' if is_chatchill else 'Waka'}")
+        # 根据 project_name 确定平台
+        # Yoho, Hiyoo -> Chatchill
+        # SoulStar -> SoulStar (dopalive)
+        # DramaBit -> DramaBit
+        platform_map = {
+            "Yoho": "Chatchill",
+            "Hiyoo": "Chatchill",
+            "SoulStar": "SoulStar",
+            "DramaBit": "DramaBit",
+        }
+        platform = platform_map.get(project_name, "Chatchill")
+        print(f"活动平台: {platform} (项目: {project_name})")
         
         # 构建新的活动配置项
         new_activity = f'    {activity_id}: ("{activity_name}", "{doc_id}"),'
@@ -138,29 +146,16 @@ def update_activity_config(activity_id, activity_name, feishu_url):
             updated_config = re.sub(pattern, new_activity, config_content)
         else:
             print(f"活动ID {activity_id} 不存在，将添加新配置")
-            # 确定插入位置
-            if is_chatchill:
-                # 尝试在Chatchill平台活动部分添加
-                chatchill_marker = "# Chatchill平台活动"
-                if chatchill_marker in config_content:
-                    print("在Chatchill平台部分添加")
-                    insert_pos = config_content.find(chatchill_marker) + len(chatchill_marker)
-                    updated_config = config_content[:insert_pos] + "\n" + new_activity + config_content[insert_pos:]
-                else:
-                    # 如果没有Chatchill标记，添加到末尾
-                    print("没有找到Chatchill标记，添加到末尾")
-                    updated_config = config_content.strip() + f"\n    # Chatchill平台活动\n{new_activity}\n"
+            # 根据平台确定插入位置
+            platform_marker = f"# {platform}平台活动"
+            if platform_marker in config_content:
+                print(f"在{platform}平台部分添加")
+                insert_pos = config_content.find(platform_marker) + len(platform_marker)
+                updated_config = config_content[:insert_pos] + "\n" + new_activity + config_content[insert_pos:]
             else:
-                # 尝试在Waka平台活动部分添加
-                waka_marker = "# Waka平台活动"
-                if waka_marker in config_content:
-                    print("在Waka平台部分添加")
-                    insert_pos = config_content.find(waka_marker) + len(waka_marker)
-                    updated_config = config_content[:insert_pos] + "\n" + new_activity + config_content[insert_pos:]
-                else:
-                    # 如果没有Waka标记，添加到开头
-                    print("没有找到Waka标记，添加到开头")
-                    updated_config = f"    # Waka平台活动\n{new_activity}\n" + config_content
+                # 如果没有对应平台标记，添加到末尾
+                print(f"没有找到{platform}标记，添加到末尾")
+                updated_config = config_content.strip() + f"\n    # {platform}平台活动\n{new_activity}\n"
         
         # 构建更新后的完整内容
         updated_content = content[:config_start + len("ACTIVITY_CONFIG = {")] + updated_config + content[config_end:]
@@ -238,11 +233,11 @@ def run_upload_script(activity_id):
         print(f"正在将活动ID {activity_id} 设置为DEFAULT_ACTIVITY_ID")
         config.activity_config.DEFAULT_ACTIVITY_ID = activity_id
         
-        # 如果活动ID大于等于20000，走chatchill的上传逻辑，否则走waka的上传逻辑
-        is_chatchill = int(activity_id) >= 20000
-        print(f"检测平台类型: {'Chatchill' if is_chatchill else 'Waka'}")
+        # 此函数已弃用，请使用 run_upload_fallback
+        print("警告: run_upload_script 已弃用，请使用 run_upload_fallback")
         
-        upload_module_path = "getdata.chatchill.check_gift_copywriter" if is_chatchill else "getdata.check_event_gift_copywriter"
+        # 使用默认的 Yoho 模块路径
+        upload_module_path = "getdata.check_event_gift_copywriter"
         print(f"上传模块路径: {upload_module_path}")
         
         try:
@@ -358,10 +353,11 @@ def run_upload_script(activity_id):
         print("尝试使用备用方法...")
         return run_upload_fallback(activity_id)
 
-def run_upload_fallback(activity_id):
+def run_upload_fallback(activity_id, project_name="Yoho"):
     """使用子进程方式运行上传脚本作为备用方案"""
     try:
         print(f"尝试使用子进程方式上传活动 {activity_id} 的文案...")
+        print(f"项目平台: {project_name}")
         
         # 构建执行环境
         env = os.environ.copy()
@@ -380,13 +376,22 @@ def run_upload_fallback(activity_id):
         
         print(f"活动目录: {event_dir}")
         
-        # 构建Python脚本路径
-        # 检查Chatchill和Waka脚本
-        chatchill_script = event_dir / "getdata" / "chatchill" / "check_gift_copywriter.py"
-        waka_script = event_dir / "getdata" / "check_event_gift_copywriter.py"
+        # 根据 project_name 选择正确的脚本路径
+        # Yoho -> check_event_gift_copywriter.py (Waka平台)
+        # Hiyoo -> chatchill/check_gift_copywriter.py (Chatchill平台)
+        # SoulStar -> soulstar/check_gift_copywriter.py (dopalive平台)
+        # DramaBit -> 暂用 check_event_gift_copywriter.py
+        script_map = {
+            "Yoho": event_dir / "getdata" / "check_event_gift_copywriter.py",
+            "Hiyoo": event_dir / "getdata" / "chatchill" / "check_gift_copywriter.py",
+            "SoulStar": event_dir / "getdata" / "soulstar" / "check_gift_copywriter.py",
+            "DramaBit": event_dir / "getdata" / "check_event_gift_copywriter.py",
+        }
         
-        is_chatchill = int(activity_id) >= 20000
-        script_path = chatchill_script if is_chatchill else waka_script
+        script_path = script_map.get(project_name)
+        if not script_path:
+            print(f"警告: 未知的项目平台 {project_name}，使用默认 chatchill 脚本")
+            script_path = event_dir / "getdata" / "chatchill" / "check_gift_copywriter.py"
         
         if not script_path.exists():
             print(f"错误: 找不到上传脚本 {script_path}")
@@ -435,16 +440,18 @@ def main():
         
     # 检查命令行参数
     if len(sys.argv) < 4:
-        print("用法: python add_activity.py <活动ID> <活动名称> <飞书文档URL>")
+        print("用法: python add_activity.py <活动ID> <活动名称> <飞书文档URL> [项目名称]")
         print(f"收到的参数: {sys.argv}")
         return False
     
     activity_id = sys.argv[1]
     activity_name = sys.argv[2]
     feishu_url = sys.argv[3]
+    # 第四个参数是项目名称，用于选择正确的上传脚本
+    project_name = sys.argv[4] if len(sys.argv) > 4 else "Yoho"
     print(f"飞书链接获取 '{feishu_url}'")
     
-    print(f"接收到参数：ID=[{activity_id}], 名称=[{activity_name}], URL=[{feishu_url}]")
+    print(f"接收到参数：ID=[{activity_id}], 名称=[{activity_name}], URL=[{feishu_url}], 项目=[{project_name}]")
     
     # 验证活动ID是否为数字
     try:
@@ -454,12 +461,12 @@ def main():
         return False
     
     # 更新配置文件
-    if not update_activity_config(activity_id, activity_name, feishu_url):
+    if not update_activity_config(activity_id, activity_name, feishu_url, project_name):
         return False
     
-    # 运行上传脚本
+    # 运行上传脚本，传递项目名称
     print("开始上传文案...")
-    if run_upload_fallback(activity_id):
+    if run_upload_fallback(activity_id, project_name):
         print("文案上传完成")
         return True
     else:

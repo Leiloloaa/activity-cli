@@ -42,6 +42,9 @@ def get_wiki_sheet_obj_token(wikitoken):
     r = requests.get(url=url,headers=header).json()
     obj_token = jsonpath(r,'$..obj_token')
     logger.info("--wikisheet:{},obj_token:{}--".format(wikitoken,obj_token))
+    if not obj_token or obj_token is False:
+        logger.error("--无法获取obj_token，请检查飞书文档权限或链接是否正确--")
+        raise ValueError(f"无法获取飞书文档 {wikitoken} 的 obj_token，请检查文档权限或链接格式")
     return obj_token[0]
 
 def get_excel_header(sheet):
@@ -51,9 +54,18 @@ def get_excel_header(sheet):
     :return:list，列数、行数、sheetid  [[13, 262, '182c2d'，title], [56, 212, 'odlKYU']]
     '''
     url = r'https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{}/metainfo'.format(sheet)
+    logger.info(f"--请求Excel元数据，URL: {url}--")
     r = requests.get(url=url, headers=header).json()
+    logger.info(f"--Excel元数据API返回: {r}--")
     result = jsonpath(r,'$..sheets[*].columnCount,rowCount,sheetId,title')
+    
+    # 检查result是否为有效列表
+    if result is False or not isinstance(result, list) or len(result) == 0:
+        logger.error(f"获取Excel头信息失败，API返回结果无效: {r}")
+        return []
+        
     result = [result[i:i+4] for i in range(0,len(result),4)]
+    logger.info(f"--解析到的sheet信息: {result}--")
     return result
 
 def get_pagegift_sheetid(sheet):
@@ -69,6 +81,8 @@ def get_pagegift_sheetid(sheet):
     for i in page_gift:
         for j in i:
             if 'PAGE' in str(j) and 'EVENT' in str(j):
+                result['page'] = i
+            elif 'SHEET1' in str(j):
                 result['page'] = i
             elif 'GIFT' in str(j):
                 result['gift'] = i
@@ -177,7 +191,7 @@ def get_excel_data(activityId,obj_token,sheetid,even,imagnums = DEFAULT_IMAGE_NU
         # print(result)
         result = ["".join(jsonpath(i, '$..text')) if isinstance(i, list) else i for i in result]
         if i == 'XM':
-            are = 'ME'
+            are = 'XM'
         else:
             are = i
         logger.info("--获取文案内容：{}--".format(result))
@@ -185,18 +199,19 @@ def get_excel_data(activityId,obj_token,sheetid,even,imagnums = DEFAULT_IMAGE_NU
         logger.info('--活动：{} {} 开始上传{}大区文案--'.format(activityId, ['正式环境' if even else '测试环境'][0], are))
         send_text_dashboard(activityId=activityId,count=countlist,area=are,exceldata=result,even=even)
         time.sleep(1)
-    if even ==0 or (even ==1 and pushimg ==1):
-        logger.info("----开始上传规则奖励图----")
-        if 'XM' in areas.keys():
-            push_activity_image(activityId=activityId, area='ME', even=even, nums=imagnums)
-        elif 'TR' in areas.keys():
-            push_activity_image(activityId=activityId, area='TR', even=even, nums=imagnums)
-        elif 'IN' in areas.keys():
-            push_activity_image(activityId=activityId, area='IN', even=even, nums=imagnums)
-        elif 'TW' in areas.keys():
-            push_activity_image(activityId=activityId, area='TW', even=even, nums=imagnums)
-        else:
-            push_activity_image(activityId=activityId, area=list(areas.keys())[0], even=even, nums=imagnums)
+    # 已屏蔽上传规则奖励图功能
+    # if even ==0 or (even ==1 and pushimg ==1):
+    #     logger.info("----开始上传规则奖励图----")
+    #     if 'XM' in areas.keys():
+    #         push_activity_image(activityId=activityId, area='XM', even=even, nums=imagnums)
+    #     elif 'TR' in areas.keys():
+    #         push_activity_image(activityId=activityId, area='TR', even=even, nums=imagnums)
+    #     elif 'IN' in areas.keys():
+    #         push_activity_image(activityId=activityId, area='IN', even=even, nums=imagnums)
+    #     elif 'TW' in areas.keys():
+    #         push_activity_image(activityId=activityId, area='TW', even=even, nums=imagnums)
+    #     else:
+    #         push_activity_image(activityId=activityId, area=list(areas.keys())[0], even=even, nums=imagnums)
 
 def send_text_dashboard(activityId,count,area,exceldata,even):
     '''
@@ -209,10 +224,10 @@ def send_text_dashboard(activityId,count,area,exceldata,even):
         :return:
         '''
     if even == 0:
-        url_test = r'https://dashboard-test.dopalive.media/activity-platform/api/activity/platform/activity/data/configActivityCopyWriting'
+        url_test = r'https://activity-api-test.dopalive.com/api/activity/platform/activity/data/configActivityCopyWriting'
     else:
-        url_test = r'https://dashboard.dopalive.media/activity-platform/api/activity/platform/activity/data/configActivityCopyWriting'
-    # url_test = r'https://dashboard.dopalive.media/activity-platform/api/activity/platform/activity/data/configActivityCopyWriting'
+        url_test = r'https://activity-api-test.dopalive.com/api/activity/platform/activity/data/configActivityCopyWriting'
+    # url_test = r'https://dashboard.dopalive.com/activity-platform/api/activity/platform/activity/data/configActivityCopyWriting'
     datas = []
     for i in range(len(exceldata)):
         datas.append({"index":i+1,'content':exceldata[i]})
@@ -220,10 +235,8 @@ def send_text_dashboard(activityId,count,area,exceldata,even):
     logger.info("--文案排序整理后内容：{}--".format(datas))
     content = {'list':datas}
     content1 = json.dumps(content)
-    data = {'activityId': activityId, 'operator': 'longduo@micous.com', 'count': count, 'area': area, 'data': datas,'content':content1}
+    data = {'activityId': activityId, 'operator': 'longduo@micous.com', 'count': count, 'country': area, 'data': datas,'content':content1}
     r = requests.post(url=url_test,headers=dashboard_headers,json=data)
-    # print(r.request.headers)
-    # print(r.text)
     logger.info('---文案上传接口返回：{}---'.format(r.text))
     codes = jsonpath(r.json(), '$..status')[0]
     # print(type(codes))
@@ -382,7 +395,7 @@ def check_gift1(obj_token,sheetid):
     '''
     giftdata = get_giftid_prices(obj_token,sheetid)
     keys = list(giftdata.keys())
-    url = r'https://dashboard.dopalive.media/v2/viewsites/gifts/'
+    url = r'https://dashboard.dopalive.com/v2/viewsites/gifts/'
     for key in keys:
         if key not in ['MY','IT']:
             for ids in giftdata[key]:
@@ -422,10 +435,10 @@ def push_activity_image(activityId,area,even,nums = DEFAULT_IMAGE_NUMS):
     :return:
     '''
     if even == 0:
-        url_test = r'https://dashboard-test.dopalive.media/activity-platform/api/activity/platform/rule/addAndEditRulePage'
+        url_test = r'https://dashboard-test.dopalive.com/activity-platform/api/activity/platform/rule/addAndEditRulePage'
     else:
         pass
-        # url_test = r'https://dashboard.dopalive.media/activity-platform/api/activity/platform/rule/addAndEditRulePage'
+        # url_test = r'https://dashboard.dopalive.com/activity-platform/api/activity/platform/rule/addAndEditRulePage'
     #wakam/149611ff9af1d087ebaf6663a25872b8
     image_list = ['149611ff9af1d087ebaf6663a25872b8','17de9bc7d5d039362da5e3fbaef53a29','619ff6c368777994bb3811c65a42bae3','95a564f41ed16a0bcc098812392bdb09','6033403b0083c5f906e859a0d45f7849','12d77ddb2f90708a19f786492314f86b','c7cc29caaf99010f4669b60148a740f8','4fbf87f60d801e7bdbe1bb316f208b5e','274fdbcc0a397a5d3b647410c192ba9f','529f738d63baff5cc60e4f5b5233f1f2','ea301cf5d41ab6ba80f65617b97e4f02','1592632a0bee60467c5cdddcb5839182']
     datas = [{"index":image_list.index(i)+1,"image":r'wakam/{}'.format(i)} for i in image_list[0:nums]]

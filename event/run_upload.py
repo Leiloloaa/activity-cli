@@ -28,18 +28,38 @@ def show_menu():
     # 获取最新配置
     config = get_config()
     
+    # 平台类型映射
+    platform_names = {
+        0: "Yoho (Waka)",
+        1: "Hiyoo (Chatchill)", 
+        2: "SoulStar (dopalive)",
+        3: "DramaBit"
+    }
+    
+    # 平台对应的活动ID前缀
+    platform_prefixes = {
+        0: "1",      # Yoho: 1xxxx
+        1: "2",      # Hiyoo: 2xxxx
+        2: "5",      # SoulStar: 5xxxx (或 3xxxx)
+        3: "4"       # DramaBit: 4xxxx
+    }
+    
     print("\n===== 活动文案上传工具 =====")
     print(f"当前环境: {'测试环境' if config.ENVIRONMENT == 0 else '正式环境'}")
     print(f"规则奖励图: {'不上传' if config.PUSH_IMAGE_FLAG == 0 else '上传'}")
-    print(f"平台类型: {'Waka' if config.PLATFORM_TYPE == 0 else 'Chatchill'}")
+    print(f"平台类型: {platform_names.get(config.PLATFORM_TYPE, 'Yoho (Waka)')}")
     print("\n可用活动列表:")
     
-    platform_prefix = "2" if config.PLATFORM_TYPE == 1 else "1"
+    platform_prefix = platform_prefixes.get(config.PLATFORM_TYPE, "1")
     
     for activity_id, (activity_name, _) in config.ACTIVITY_CONFIG.items():
         # 根据平台类型筛选活动
         activity_id_str = str(activity_id)
-        if activity_id_str.startswith(platform_prefix) or (platform_prefix == "1" and (isinstance(activity_id, int) and activity_id < 20000)):
+        # SoulStar 同时匹配 3xxxx 和 5xxxx
+        if config.PLATFORM_TYPE == 2:
+            if activity_id_str.startswith("5") or activity_id_str.startswith("3"):
+                print(f"  [{activity_id}] {activity_name}")
+        elif activity_id_str.startswith(platform_prefix) or (platform_prefix == "1" and (isinstance(activity_id, int) and activity_id < 20000)):
             print(f"  [{activity_id}] {activity_name}")
     
     print("\n选项:")
@@ -141,14 +161,17 @@ def run_upload(activity_id):
     # 确保活动ID设置为默认值
     update_config("DEFAULT_ACTIVITY_ID", activity_id)
     
-    if config.PLATFORM_TYPE == 0:
-        # Waka 平台
-        print(f"执行 Waka 平台上传脚本，活动ID: {activity_id}")
-        os.system(f"python3 getdata/check_event_gift_copywriter.py --activity_id {activity_id} --force_reload")
-    else:
-        # Chatchill 平台
-        print(f"执行 Chatchill 平台上传脚本，活动ID: {activity_id}")
-        os.system(f"python3 getdata/chatchill/check_gift_copywriter.py --activity_id {activity_id} --force_reload")
+    # 平台脚本映射
+    platform_scripts = {
+        0: ("Yoho (Waka)", "getdata/check_event_gift_copywriter.py"),
+        1: ("Hiyoo (Chatchill)", "getdata/chatchill/check_gift_copywriter.py"),
+        2: ("SoulStar (dopalive)", "getdata/soulstar/check_gift_copywriter.py"),
+        3: ("DramaBit", "getdata/check_event_gift_copywriter.py"),  # DramaBit 暂用 Waka 脚本
+    }
+    
+    platform_name, script_path = platform_scripts.get(config.PLATFORM_TYPE, platform_scripts[0])
+    print(f"执行 {platform_name} 平台上传脚本，活动ID: {activity_id}")
+    os.system(f"python3 {script_path} --activity_id {activity_id} --force_reload")
 
 def add_activity_config():
     """添加新的活动配置"""
@@ -245,9 +268,16 @@ def main():
         elif choice == "3":
             # 获取最新配置
             config = get_config()
-            new_platform = 1 if config.PLATFORM_TYPE == 0 else 0
+            # 循环切换4个平台: 0->1->2->3->0
+            new_platform = (config.PLATFORM_TYPE + 1) % 4
+            platform_names = {
+                0: "Yoho (Waka)",
+                1: "Hiyoo (Chatchill)",
+                2: "SoulStar (dopalive)",
+                3: "DramaBit"
+            }
             if update_config("PLATFORM_TYPE", new_platform):
-                print(f"平台类型已切换为: {'Chatchill' if new_platform == 1 else 'Waka'}")
+                print(f"平台类型已切换为: {platform_names[new_platform]}")
         elif choice == "4":
             # 添加新活动配置
             add_activity_config()

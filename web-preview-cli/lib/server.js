@@ -358,6 +358,9 @@ async function preCacheTemplates(forceRefresh = false) {
     // 检查 HTML 文件是否需要下载
     const needDownloadHtml = !fs.existsSync(CREATE_PAGE_CACHE_FILE);
 
+    // 统计需要下载的内容
+    const hasDownloadTasks = needDownloadHtml || templateTasks.length > 0;
+
     // 下载创建页缓存
     if (needDownloadHtml) {
       process.stdout.write("  下载创建页缓存...");
@@ -365,13 +368,10 @@ async function preCacheTemplates(forceRefresh = false) {
         const htmlUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${CREATE_PAGE_HTML}`;
         await downloadGitHubFile(htmlUrl, CREATE_PAGE_CACHE_FILE);
         process.stdout.write("\r" + " ".repeat(30) + "\r");
-        console.log(chalk.green("✓ 创建页缓存已准备好"));
       } catch {
         process.stdout.write("\r" + " ".repeat(30) + "\r");
         console.log(chalk.yellow("⚠️  创建页缓存下载失败"));
       }
-    } else {
-      console.log(chalk.green("✓ 创建页缓存已准备好"));
     }
 
     // 下载模板缓存
@@ -417,11 +417,11 @@ async function preCacheTemplates(forceRefresh = false) {
 
       // 清除进度行并换行
       process.stdout.write("\r" + " ".repeat(40) + "\r");
-
-      console.log(chalk.green("✓ 模板缓存已准备好"));
-    } else {
-      console.log(chalk.green("✓ 模板缓存已准备好"));
     }
+
+    // 统一输出缓存状态
+    console.log(chalk.green("✓ 创建页缓存已准备好"));
+    console.log(chalk.green("✓ 模板缓存已准备好"));
 
     // 保存版本信息
     if (remoteVersion) {
@@ -1314,7 +1314,9 @@ async function handleToPythonText(req, res) {
       const pythonPathEnv = isWindows
         ? `set PYTHONPATH=${eventDir} &&`
         : `PYTHONPATH="${eventDir}"`;
-      const command = `cd "${parentDir}" && ${pythonPathEnv} "${pythonPath}" "${scriptPath}" ${data.id} "${data.name}" "${data.textUrl}"`;
+      // 传递 projectName 给 Python 脚本以选择正确的平台脚本
+      const projectName = data.projectName || "Yoho";
+      const command = `cd "${parentDir}" && ${pythonPathEnv} "${pythonPath}" "${scriptPath}" ${data.id} "${data.name}" "${data.textUrl}" "${projectName}"`;
 
       console.log(`执行命令: ${command}`);
 

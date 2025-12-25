@@ -87,13 +87,15 @@ ACTIVITY_CONFIG = {
     20153: ("hiyoo年度开幕式", "https://micoworld.feishu.cn/wiki/FY7gw21VBiFgGGkz0vRcXMMlnmI?sheet=6823aa"),
 
     10678: ("年度经验翻倍", "https://micoworld.feishu.cn/wiki/JqugwoqveiV10AkOTj2cdiQGnNg?sheet=355ac8"),
+
+    50019: ("1v1pk", "SjgowvgNPivYK1kzKbfcdhwZnqc"),
 }
 
 # 默认使用的活动ID
-DEFAULT_ACTIVITY_ID = 10678
+DEFAULT_ACTIVITY_ID = 50019
 
 # 图片上传数量
 DEFAULT_IMAGE_NUMS = 8
 
 # 平台类型 waka:0, chatchill:1
-PLATFORM_TYPE = 0
+PLATFORM_TYPE = 2

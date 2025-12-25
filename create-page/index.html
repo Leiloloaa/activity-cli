@@ -163,10 +163,16 @@
               <el-input v-model="form.catalog" placeholder="e.g. 202412" />
             </el-form-item>
             <el-form-item label="Activity Name">
-              <el-input v-model="form.name" placeholder="活动名称（必填）" />
+              <el-input
+                v-model="form.name"
+                placeholder="活动名称（创建模板时必填）"
+              />
             </el-form-item>
             <el-form-item label="Activity ID">
-              <el-input v-model="form.id" placeholder="活动 ID" />
+              <el-input
+                v-model="form.id"
+                placeholder="活动 ID（上传文案时必填）"
+              />
             </el-form-item>
             <el-form-item label="Document URL">
               <el-input v-model="form.url" placeholder="需求文档链接" />
@@ -189,7 +195,10 @@
             <el-form-item label="Background">
               <el-input v-model="form.bgc" placeholder="背景色，如 #ffffff" />
             </el-form-item>
-            <el-form-item label="Swiper OP">
+            <el-form-item
+              label="Swiper OP"
+              v-show="form.projectName === 'Yoho' || form.projectName === 'Hiyoo'"
+            >
               <div style="display: flex; align-items: center; gap: 10px">
                 <el-radio-group v-model="form.op">
                   <el-radio-button label="true"></el-radio-button>
@@ -202,7 +211,10 @@
                 />
               </div>
             </el-form-item>
-            <el-form-item label="Hot Banner">
+            <el-form-item
+              label="Hot Banner"
+              v-show="form.projectName === 'Yoho' || form.projectName === 'Hiyoo'"
+            >
               <div style="display: flex; align-items: center; gap: 10px">
                 <el-radio-group v-model="form.hot">
                   <el-radio-button label="true"></el-radio-button>
@@ -245,8 +257,8 @@
             url: "",
             textUrl: "",
             figma: "",
-            op: "true",
-            hot: "true",
+            op: "false",
+            hot: "false",
             opNum: "1",
             hotNum: "1",
           });
@@ -269,10 +281,6 @@
               ElMessage.warning("请输入 Activity ID");
               return;
             }
-            if (!form.name) {
-              ElMessage.warning("请输入 Activity Name");
-              return;
-            }
             if (!form.textUrl) {
               ElMessage.warning("请输入飞书文案链接");
               return;
@@ -286,6 +294,7 @@
                   id: form.id,
                   name: form.projectName,
                   textUrl: form.textUrl,
+                  projectName: form.projectName,
                 }
               );
 
