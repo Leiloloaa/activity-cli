@@ -15,6 +15,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/home',
     name: 'home',
     component: Home,
+    redirect: '/home/rank',
     children: [
       {
         path: 'rank',
