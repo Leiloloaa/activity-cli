@@ -158,7 +158,7 @@
                 <el-radio-button label="DramaBit"></el-radio-button>
               </el-radio-group>
             </el-form-item>
-            <el-form-item label="General activity">
+            <el-form-item :label="form.projectName === 'SoulStar' ? 'Regular activity' : 'General activity'">
               <el-radio-group v-model="form.isGeneral">
                 <el-radio-button label="true"></el-radio-button>
                 <el-radio-button label="false"></el-radio-button>

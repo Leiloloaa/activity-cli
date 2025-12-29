@@ -1432,16 +1432,26 @@ function createServer(rootDir, port, options = {}) {
         res.setHeader("Content-Type", "application/json");
 
         const dirToProjectMap = {
-          "activity-vite": "Yoho",
-          webpackProject_Vue3: "SoulStar",
+          "soulstar-activity-h5": "SoulStar",
+          "activity-h5": "Hiyoo",
           "miniepisode-activity-h5": "DramaBit",
         };
 
-        const currentDir = path.basename(process.cwd());
-        const projectName = dirToProjectMap[currentDir] || "Yoho";
+        const cwd = process.cwd();
+        // 将路径分割成目录数组
+        const pathParts = cwd.split(path.sep);
+
+        // 检查路径中是否有完整的目录名匹配
+        let projectName = "Yoho";
+        for (const [key, value] of Object.entries(dirToProjectMap)) {
+          if (pathParts.includes(key)) {
+            projectName = value;
+            break;
+          }
+        }
 
         res.writeHead(200);
-        res.end(JSON.stringify({ projectName, currentDir }));
+        res.end(JSON.stringify({ projectName, cwd }));
         return;
       }
 

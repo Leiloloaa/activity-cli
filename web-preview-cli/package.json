@@ -1,6 +1,6 @@
 {
   "name": "web-preview-cli",
-  "version": "1.0.7",
+  "version": "1.0.10",
   "description": "从 git 仓库下载网页并启动本地服务器预览",
   "main": "index.js",
   "bin": {
