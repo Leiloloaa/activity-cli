@@ -6,7 +6,7 @@ const { promisify } = require("util");
 
 const execPromise = promisify(exec);
 
-const PORT = 3000;
+const PORT = 3333;
 
 // 项目目录
 const PROJECT_DIR = path.dirname(__dirname);

@@ -73,6 +73,11 @@
 
       .el-input {
         border-radius: 8px !important;
+        height: 36px !important;
+      }
+
+      .el-input__wrapper {
+        height: 36px !important;
       }
 
       .el-radio-button {
@@ -266,12 +271,31 @@
           const loading = ref(false);
           const textLoading = ref(false);
 
+          // 页面加载时获取当前目录匹配的项目名称
+          const initProjectName = async () => {
+            try {
+              const res = await axios.get(
+                "http://localhost:3000/getProjectName"
+              );
+              if (res.data && res.data.projectName) {
+                form.projectName = res.data.projectName;
+              }
+            } catch (err) {
+              // 静默处理错误，使用默认值
+            }
+          };
+          initProjectName();
+
           // 监听 isGeneral 变化
           watch(
             () => form.isGeneral,
             (val) => {
-              form.catalog =
-                val === "true" ? "general" : dayjs().format("YYYYMM");
+              if (val === "true") {
+                form.catalog =
+                  form.projectName === "SoulStar" ? "regular" : "general";
+              } else {
+                form.catalog = dayjs().format("YYYYMM");
+              }
             }
           );
 

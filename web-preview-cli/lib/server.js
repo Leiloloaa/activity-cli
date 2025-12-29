@@ -1180,7 +1180,23 @@ async function handleDownloadTemplate(req, res) {
 
       console.log(chalk.green(`\n✓ ${data.projectName} 活动创建完成`));
       console.log(chalk.cyan(`  活动名称: ${data.name}`));
-      console.log(chalk.cyan(`  活动 ID: ${data.id || "未设置"}\n`));
+      console.log(chalk.cyan(`  活动 ID: ${data.id || "未设置"}`));
+
+      // 修改 base.js 中的 includeProject 配置
+      try {
+        const basePath = path.resolve(process.cwd(), "config/base.js");
+        if (fs.existsSync(basePath)) {
+          const baseContent = fs.readFileSync(basePath, "utf8");
+          const modifiedContent = baseContent.replace(
+            /includeProject: \[[\s\S]*?\]/,
+            `includeProject: [/${catalog}\\/${activityName}/]`
+          );
+          fs.writeFileSync(basePath, modifiedContent, "utf8");
+          console.log(chalk.green(`  已更新 base.js includeProject 配置\n`));
+        }
+      } catch (err) {
+        // 静默处理错误
+      }
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
@@ -1407,6 +1423,25 @@ function createServer(rootDir, port, options = {}) {
 
       if (urlPath === "/toPythonText") {
         await handleToPythonText(req, res);
+        return;
+      }
+
+      // 获取当前目录匹配的项目名称
+      if (urlPath === "/getProjectName") {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Content-Type", "application/json");
+
+        const dirToProjectMap = {
+          "activity-vite": "Yoho",
+          webpackProject_Vue3: "SoulStar",
+          "miniepisode-activity-h5": "DramaBit",
+        };
+
+        const currentDir = path.basename(process.cwd());
+        const projectName = dirToProjectMap[currentDir] || "Yoho";
+
+        res.writeHead(200);
+        res.end(JSON.stringify({ projectName, currentDir }));
         return;
       }
 
